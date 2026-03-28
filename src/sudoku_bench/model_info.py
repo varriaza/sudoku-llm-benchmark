@@ -4,7 +4,6 @@ import warnings
 from dataclasses import dataclass
 from typing import Optional
 import urllib.request
-import urllib.error
 import json
 
 
@@ -52,16 +51,18 @@ def detect_model_info(api_base: str, name_override: Optional[str] = None) -> Mod
     Falls back gracefully with warnings for any fields that can't be determined.
     """
     base = api_base.rstrip("/")
+    # Strip trailing /v1 for Ollama endpoints (safe for URLs that contain /v1 elsewhere)
+    ollama_base = base[:-3] if base.endswith("/v1") else base
 
     # --- Try Ollama ---
     # List models: GET /api/tags
-    tags = _get_json(f"{base.replace('/v1', '')}/api/tags")
+    tags = _get_json(f"{ollama_base}/api/tags")
     if tags and "models" in tags:
         models = tags["models"]
         model_name = name_override or (models[0]["name"] if models else None)
         if model_name:
             show = _get_json_post(
-                f"{base.replace('/v1', '')}/api/show",
+                f"{ollama_base}/api/show",
                 {"name": model_name},
             )
             context_window = None
