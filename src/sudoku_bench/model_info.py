@@ -13,6 +13,7 @@ class ModelInfo:
     params: Optional[str]       # e.g. "70B"
     quant: Optional[str]        # e.g. "Q4_K_M"
     context_window: Optional[int]
+    backend_type: str = "unknown"  # "ollama" | "vllm" | "unknown"
 
 
 def _get_json(url: str, timeout: int = 5) -> Optional[dict]:
@@ -84,6 +85,7 @@ def detect_model_info(api_base: str, name_override: Optional[str] = None) -> Mod
                 params=_extract_params(model_name),
                 quant=_extract_quant(model_name),
                 context_window=context_window,
+                backend_type="ollama",
             )
 
     # --- Try vLLM ---
@@ -100,6 +102,7 @@ def detect_model_info(api_base: str, name_override: Optional[str] = None) -> Mod
                 params=_extract_params(model_name),
                 quant=_extract_quant(model_name),
                 context_window=None,
+                backend_type="vllm",
             )
 
     # Fallback
@@ -110,4 +113,5 @@ def detect_model_info(api_base: str, name_override: Optional[str] = None) -> Mod
         params=_extract_params(name),
         quant=_extract_quant(name),
         context_window=None,
+        backend_type="unknown",
     )
