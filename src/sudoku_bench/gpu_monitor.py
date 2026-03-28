@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import subprocess
 import threading
-import time
 from dataclasses import dataclass
 from typing import Optional
 
