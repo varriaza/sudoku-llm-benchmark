@@ -65,9 +65,8 @@ class PuzzleMetrics:
 
 
 def append_csv_row(metrics: PuzzleMetrics, path: Path) -> None:
-    """Append one row to the CSV. Writes header if the file is new."""
+    """Append one row to the CSV. Writes header if the file is new or empty."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    write_header = not path.exists()
 
     row = {
         col: ("" if val is None else val)
@@ -75,6 +74,7 @@ def append_csv_row(metrics: PuzzleMetrics, path: Path) -> None:
     }
 
     with open(path, "a", newline="") as f:
+        write_header = f.tell() == 0
         writer = csv.DictWriter(f, fieldnames=CSV_COLUMNS)
         if write_header:
             writer.writeheader()
