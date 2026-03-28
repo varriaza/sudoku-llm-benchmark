@@ -1,4 +1,3 @@
-import pytest
 from sudoku_bench.board import Board
 
 

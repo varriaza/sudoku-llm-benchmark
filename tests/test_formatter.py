@@ -1,4 +1,3 @@
-import pytest
 from sudoku_bench.board import Board
 from sudoku_bench.formatter import format_board, cell_width
 

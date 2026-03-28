@@ -1,5 +1,4 @@
 import csv
-from pathlib import Path
 from sudoku_bench.metrics import PuzzleMetrics, append_csv_row, CSV_COLUMNS
 
 
