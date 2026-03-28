@@ -8,7 +8,6 @@ from sudoku_bench.puzzle_bank import (
     append_puzzles,
     PuzzleRecord,
 )
-from sudoku_bench.board import Board
 
 
 def test_generate_puzzle_returns_record():
@@ -48,7 +47,6 @@ def test_generate_puzzle_givens_match_solution():
 def test_generate_puzzle_empty_cells_in_board():
     record = generate_puzzle(box_rows=2, box_cols=2, difficulty=0.75, seq=1)
     empty_count = sum(1 for row in record.board for v in row if v is None)
-    total = 4 * 4
     # At least 1 cell should be empty with difficulty 0.75
     assert empty_count > 0
 
