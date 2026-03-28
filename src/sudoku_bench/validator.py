@@ -58,12 +58,12 @@ def validate(board: Board, original: Optional[Board] = None) -> list[Violation]:
 
     # Row duplicate check
     for r in range(size):
-        seen: dict[int, list[int]] = {}
+        row_seen: dict[int, list[int]] = {}
         for c in range(size):
             val = board.cells[r][c]
             if val is not None:
-                seen.setdefault(val, []).append(c)
-        for val, cols in seen.items():
+                row_seen.setdefault(val, []).append(c)
+        for val, cols in row_seen.items():
             if len(cols) > 1:
                 violations.append(Violation(
                     type=ViolationType.ROW_DUPLICATE,
@@ -73,12 +73,12 @@ def validate(board: Board, original: Optional[Board] = None) -> list[Violation]:
 
     # Column duplicate check
     for c in range(size):
-        seen: dict[int, list[int]] = {}
+        col_seen: dict[int, list[int]] = {}
         for r in range(size):
             val = board.cells[r][c]
             if val is not None:
-                seen.setdefault(val, []).append(r)
-        for val, rows in seen.items():
+                col_seen.setdefault(val, []).append(r)
+        for val, rows in col_seen.items():
             if len(rows) > 1:
                 violations.append(Violation(
                     type=ViolationType.COL_DUPLICATE,
@@ -93,13 +93,13 @@ def validate(board: Board, original: Optional[Board] = None) -> list[Violation]:
     boxes_across = board.size // board.box_cols
     for br in range(boxes_down):
         for bc in range(boxes_across):
-            seen: dict[int, list[tuple[int, int]]] = {}
+            box_seen: dict[int, list[tuple[int, int]]] = {}
             for r in range(br * board.box_rows, (br + 1) * board.box_rows):
                 for c in range(bc * board.box_cols, (bc + 1) * board.box_cols):
                     val = board.cells[r][c]
                     if val is not None:
-                        seen.setdefault(val, []).append((r, c))
-            for val, positions in seen.items():
+                        box_seen.setdefault(val, []).append((r, c))
+            for val, positions in box_seen.items():
                 if len(positions) > 1:
                     violations.append(Violation(
                         type=ViolationType.BOX_DUPLICATE,
