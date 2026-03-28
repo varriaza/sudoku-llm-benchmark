@@ -79,6 +79,7 @@ def run_puzzle(
     model_name: str,
     context_window: Optional[int],
     context_buffer: int,
+    max_turns: int = 50,
 ) -> dict:
     """
     Run one puzzle to completion (or context exhaustion).
@@ -145,6 +146,8 @@ def run_puzzle(
             # Check context before looping
             if context_window and context_tokens_used + context_buffer >= context_window:
                 break
+            if context_window is None and total_turns + malformed_submissions >= max_turns:
+                break
             continue
 
         # Valid parse — validate and score
@@ -176,6 +179,8 @@ def run_puzzle(
 
         # Check context window
         if context_window and context_tokens_used + context_buffer >= context_window:
+            break
+        if context_window is None and total_turns + malformed_submissions >= max_turns:
             break
 
     total_seconds = round(time.time() - start_time, 2)
@@ -241,6 +246,7 @@ def main() -> None:
                 model_name=model_info.name,
                 context_window=model_info.context_window,
                 context_buffer=config.benchmark.context_buffer_tokens,
+                max_turns=config.benchmark.max_turns_per_puzzle,
             )
         finally:
             gpu_stats = monitor.stop()

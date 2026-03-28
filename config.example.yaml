@@ -29,3 +29,4 @@ benchmark:
   results_file: "results/benchmark.csv"
   puzzle_bank_file: "puzzles/puzzles.json"
   context_buffer_tokens: 500      # reserve this many tokens before context is "full"
+  max_turns_per_puzzle: 50        # max turns per puzzle when context window is unknown

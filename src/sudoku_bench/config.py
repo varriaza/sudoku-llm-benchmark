@@ -25,6 +25,7 @@ class BenchmarkConfig:
     results_file: str = "results/benchmark.csv"
     puzzle_bank_file: str = "puzzles/puzzles.json"
     context_buffer_tokens: int = 500
+    max_turns_per_puzzle: int = 50
 
 
 @dataclass
