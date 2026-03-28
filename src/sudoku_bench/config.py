@@ -1,5 +1,5 @@
 from __future__ import annotations
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 import yaml
@@ -37,6 +37,8 @@ class Config:
 def load_config(path: Path) -> Config:
     with open(path) as f:
         raw = yaml.safe_load(f)
+    if not isinstance(raw, dict):
+        raise ValueError(f"Config file is empty or not valid YAML: {path}")
 
     model = ModelConfig(**raw.get("model", {}))
     puzzles = [PuzzleSetConfig(**p) for p in raw.get("puzzles", [])]
