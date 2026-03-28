@@ -9,6 +9,7 @@ import yaml
 class ModelConfig:
     api_base: str = "http://localhost:11434/v1"
     name: Optional[str] = None
+    context_window: Optional[int] = None
 
 
 @dataclass
@@ -25,7 +26,7 @@ class BenchmarkConfig:
     results_file: str = "results/benchmark.csv"
     puzzle_bank_file: str = "puzzles/puzzles.json"
     context_buffer_tokens: int = 500
-    max_turns_per_puzzle: int = 50
+    max_turns_per_puzzle: int = 200
 
 
 @dataclass

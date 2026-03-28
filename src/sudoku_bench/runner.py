@@ -217,10 +217,18 @@ def main() -> None:
 
     print(f"Detecting model info from {config.model.api_base}...")
     model_info = detect_model_info(config.model.api_base, config.model.name)
+
+    # Config override takes precedence; error if still unknown after merge
+    context_window = config.model.context_window or model_info.context_window
+    if context_window is None:
+        print("Error: could not detect context window size for this model.")
+        print("Set it explicitly in your config: model.context_window: <tokens>")
+        sys.exit(1)
+
     print(f"  Model: {model_info.name}")
     print(f"  Params: {model_info.params or 'unknown'}")
     print(f"  Quant: {model_info.quant or 'unknown'}")
-    print(f"  Context window: {model_info.context_window or 'unknown'}")
+    print(f"  Context window: {context_window}")
 
     bank_path = Path(config.benchmark.puzzle_bank_file)
     puzzles = load_bank(bank_path)
@@ -244,7 +252,7 @@ def main() -> None:
                 record=record,
                 client=client,
                 model_name=model_info.name,
-                context_window=model_info.context_window,
+                context_window=context_window,
                 context_buffer=config.benchmark.context_buffer_tokens,
                 max_turns=config.benchmark.max_turns_per_puzzle,
             )

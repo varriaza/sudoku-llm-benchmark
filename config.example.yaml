@@ -1,6 +1,7 @@
 model:
   api_base: "http://localhost:11434/v1"
   name: "llama3:70b-q4_K_M"   # optional — auto-detected if omitted
+  # context_window: 32768       # set manually if backend doesn't report it
 
 puzzles:
   - box_rows: 2
@@ -29,4 +30,4 @@ benchmark:
   results_file: "results/benchmark.csv"
   puzzle_bank_file: "puzzles/puzzles.json"
   context_buffer_tokens: 500      # reserve this many tokens before context is "full"
-  max_turns_per_puzzle: 50        # max turns per puzzle when context window is unknown
+  max_turns_per_puzzle: 200       # hard cap on turns per puzzle (safety net)
