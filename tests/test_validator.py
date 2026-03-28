@@ -1,6 +1,5 @@
-import pytest
 from sudoku_bench.board import Board
-from sudoku_bench.validator import validate, Violation, ViolationType
+from sudoku_bench.validator import validate, ViolationType
 
 
 def make_board(cells, givens_set, box_rows=3, box_cols=3):

@@ -1,9 +1,7 @@
 """Tests for run_puzzle max_turns safeguard."""
 from __future__ import annotations
-from typing import Optional
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-import pytest
 
 from sudoku_bench.runner import run_puzzle
 from sudoku_bench.puzzle_bank import PuzzleRecord

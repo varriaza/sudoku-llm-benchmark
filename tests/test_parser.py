@@ -1,5 +1,3 @@
-import pytest
-from sudoku_bench.board import Board
 from sudoku_bench.parser import parse_board
 
 
