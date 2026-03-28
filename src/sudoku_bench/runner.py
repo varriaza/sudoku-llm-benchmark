@@ -130,7 +130,7 @@ def run_puzzle(
             reasoning = 0
 
         total_tokens += completion_tokens + reasoning
-        context_tokens_used = prompt_tokens + total_tokens
+        context_tokens_used = prompt_tokens + completion_tokens + reasoning
 
         assistant_text = response.choices[0].message.content or ""
         messages.append({"role": "assistant", "content": assistant_text})
