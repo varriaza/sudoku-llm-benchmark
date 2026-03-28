@@ -1,5 +1,4 @@
 import pytest
-from sudoku_bench.board import Board
 from sudoku_bench.validator import Violation, ViolationType
 from sudoku_bench.feedback import generate_feedback
 

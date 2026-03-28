@@ -20,7 +20,11 @@ def generate_feedback(
         elif v.type == ViolationType.COL_DUPLICATE:
             lines.append(f"Column {v.col + 1} has duplicate {v.value}s.")
         elif v.type == ViolationType.BOX_DUPLICATE:
-            lines.append(f"A box has duplicate {v.value}s.")
+            if v.positions:
+                r, c = v.positions[0]
+                lines.append(f"Box containing R{r + 1}C{c + 1} has duplicate {v.value}s.")
+            else:
+                lines.append(f"A box has duplicate {v.value}s.")
         elif v.type == ViolationType.MODIFIED_GIVEN:
             lines.append(
                 f"R{v.row + 1}C{v.col + 1} was a given ({v.expected}), "
