@@ -202,7 +202,7 @@ def test_board_cells_filled_count():
              [3, None, None, 2],
              [None, 4, 1, None]]
     board = Board(cells=cells, givens=frozenset(), box_rows=2, box_cols=2)
-    assert board.cells_filled == 6
+    assert board.cells_filled == 8
     assert board.total_cells == 16
 
 

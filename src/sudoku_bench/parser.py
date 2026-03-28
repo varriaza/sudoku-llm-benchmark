@@ -1,5 +1,4 @@
 from __future__ import annotations
-import re
 from typing import Optional
 from sudoku_bench.board import Board
 
@@ -23,11 +22,6 @@ def _parse_data_line(
     if box_cols is not None and "|" in line:
         segments = line.split("|")
         for seg in segments:
-            seg_tokens = seg.split()
-            # Filter out non-cell tokens (empty segments at edges are fine)
-            cell_tokens = [t for t in seg_tokens if t.replace("*", "").replace(".", "").isdigit() or t in (".", ".*", "*")]
-            # Count actual cell tokens per segment
-            count = len(seg.split()) if seg.strip() else 0
             # Parse segment tokens
             parsed_seg = []
             for token in seg.split():
