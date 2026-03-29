@@ -219,10 +219,12 @@ def main() -> None:
 
     server_proc = None
     if config.serve:
-        print(f"Starting server: {' '.join(config.serve.command)}")
+        model_name = config.model.name or ""
+        command = [arg.replace("{model}", model_name) for arg in config.serve.command]
+        print(f"Starting server: {' '.join(command)}")
         try:
             server_proc = start_server(
-                command=config.serve.command,
+                command=command,
                 api_base=config.model.api_base,
                 startup_timeout=config.serve.startup_timeout,
             )

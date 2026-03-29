@@ -7,7 +7,7 @@ model:
 # shuts it down after (including on Ctrl-C or errors).
 # Remove this section if you prefer to manage the server yourself.
 serve:
-  command: ["vllm", "serve", "meta-llama/Llama-3.1-8B-Instruct"]
+  command: ["vllm", "serve", "{model}"]  # {model} is replaced with model.name
   startup_timeout: 120  # seconds to wait for server to be ready
 
 puzzles:

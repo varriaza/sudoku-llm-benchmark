@@ -1,9 +1,8 @@
-"""Tests for run_puzzle max_turns safeguard."""
+"""Tests for runner behaviour."""
 from __future__ import annotations
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
-
-from sudoku_bench.runner import run_puzzle
+from sudoku_bench.runner import run_puzzle, main
 from sudoku_bench.puzzle_bank import PuzzleRecord
 
 
@@ -91,3 +90,36 @@ def test_max_turns_not_triggered_when_context_window_known():
     assert not result["solved"]
     # Context guard fires on the first response
     assert client.chat.completions.create.call_count == 1
+
+
+# ── {model} substitution in serve command ────────────────────────────────────
+
+def test_model_placeholder_substituted_in_serve_command():
+    """serve.command {model} is replaced with model.name before starting server."""
+    from sudoku_bench.config import Config, ModelConfig, BenchmarkConfig, ServeConfig
+
+    config = Config(
+        model=ModelConfig(
+            api_base="http://localhost:8000/v1",
+            name="meta-llama/Llama-3.1-8B-Instruct",
+            context_window=32768,
+        ),
+        puzzles=[],
+        benchmark=BenchmarkConfig(),
+        serve=ServeConfig(command=["vllm", "serve", "{model}"], startup_timeout=1),
+    )
+
+    captured = {}
+
+    def fake_start_server(command, api_base, startup_timeout):
+        captured["command"] = command
+        return MagicMock()
+
+    with patch("sudoku_bench.runner.load_config", return_value=config), \
+         patch("sudoku_bench.runner.start_server", side_effect=fake_start_server), \
+         patch("sudoku_bench.runner.stop_server"), \
+         patch("sudoku_bench.runner._run_benchmark"), \
+         patch("sys.argv", ["sudoku-bench", "configs/example.yaml"]):
+        main()
+
+    assert captured["command"] == ["vllm", "serve", "meta-llama/Llama-3.1-8B-Instruct"]

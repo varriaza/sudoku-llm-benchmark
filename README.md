@@ -49,7 +49,7 @@ Add a `serve:` block and `sudoku-bench` will start the server for you, wait unti
 
 ```yaml
 serve:
-  command: ["vllm", "serve", "meta-llama/Llama-3.1-8B-Instruct"]
+  command: ["vllm", "serve", "{model}"]  # {model} is replaced with model.name
   startup_timeout: 120  # seconds to wait for server to be ready
 ```
 
