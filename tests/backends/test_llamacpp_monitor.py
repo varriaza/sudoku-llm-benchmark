@@ -1,6 +1,7 @@
 """Tests for the llama.cpp Prometheus metrics monitor."""
 from __future__ import annotations
 
+import psutil
 from backends.llamacpp.monitor import LlamaCppMonitor, _metrics_url, _parse_gauge
 
 # ── _metrics_url ──────────────────────────────────────────────────────────────
@@ -77,7 +78,6 @@ def _make_monitor(
                 monitor._gpu_max_vram_mb = total_mb
             monitor._vram_samples.append(used_mb)
 
-        import psutil
         ram_mb = int(psutil.virtual_memory().used / 1024 / 1024)
         monitor._sys_ram_samples.append(ram_mb)
 

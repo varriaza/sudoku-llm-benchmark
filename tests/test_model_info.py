@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import warnings
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from sudoku_bench.model_info import detect_model_info
 

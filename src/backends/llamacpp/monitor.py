@@ -45,7 +45,9 @@ def _parse_gauge(text: str, metric_name: str) -> Optional[float]:
     Handles both labelled and unlabelled forms:
       llamacpp:kv_cache_usage_ratio{slot_id="0"} 0.45
       llamacpp:kv_cache_usage_ratio 0.45
-    Returns None if the metric is absent or the value is NaN/Inf.
+    Returns None if the metric is absent or the value cannot be parsed as a float.
+    Note: the regex only matches numeric characters, so NaN/Inf literal strings
+    are rejected at the regex stage rather than the float-conversion stage.
     """
     pattern = re.compile(
         rf"^{re.escape(metric_name)}(?:\{{[^}}]*\}})?\s+([\d.eE+\-]+)",
@@ -150,7 +152,7 @@ class LlamaCppMonitor:
                 text=True,
                 timeout=5,
             )
-            line = result.stdout.strip().splitlines()[0]
+            line = result.stdout.strip().splitlines()[0]  # single-GPU only; multi-GPU machines use GPU 0
             parts = [p.strip() for p in line.split(",")]
             name = parts[0]
             used_mb = int(parts[1])
