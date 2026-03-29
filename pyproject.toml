@@ -21,7 +21,8 @@ sudoku-bench = "sudoku_bench.runner:main"
 sudoku-gen = "sudoku_bench.puzzle_bank:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/sudoku_bench"]
+packages = ["src/sudoku_bench", "src/backends"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src"]

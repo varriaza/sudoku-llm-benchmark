@@ -10,6 +10,7 @@ from sudoku_bench.board import Board
 from sudoku_bench.config import load_config
 from sudoku_bench.feedback import generate_feedback
 from sudoku_bench.formatter import format_board
+from backends.vllm.monitor import VLLMMonitor
 from sudoku_bench.gpu_monitor import GPUMonitor
 from sudoku_bench.metrics import PuzzleMetrics, append_csv_row
 from sudoku_bench.model_info import detect_model_info
@@ -238,7 +239,15 @@ def main() -> None:
 
     results_path = Path(config.benchmark.results_file)
     client = OpenAI(base_url=config.model.api_base, api_key="not-needed")
-    monitor = GPUMonitor(poll_interval=config.benchmark.gpu_poll_interval)
+    if model_info.backend_type == "vllm":
+        monitor = VLLMMonitor(
+            api_base=config.model.api_base,
+            poll_interval=config.benchmark.gpu_poll_interval,
+        )
+        print("  Monitor: vLLM /metrics")
+    else:
+        monitor = GPUMonitor(poll_interval=config.benchmark.gpu_poll_interval)
+        print("  Monitor: nvidia-smi")
 
     print(f"\nRunning {len(puzzles)} puzzles...")
 
