@@ -1,7 +1,9 @@
+# Run a quick, small model to test things out
+
 model:
   api_base: "http://localhost:8080/v1"
   name: "Qwen3.5-9B-Q4_K_M.gguf"
-  context_window: 32768
+  context_window: 8192
 
 # Optional: if present, sudoku-bench starts the server before running and
 # shuts it down after (including on Ctrl-C or errors).
@@ -14,7 +16,7 @@ serve:
     "--hf-repo", "unsloth/Qwen3.5-9B-GGUF",
     "--hf-file", "Qwen3.5-9B-Q4_K_M.gguf",
     "--port", "8080",
-    "--ctx-size", "32768",
+    "--ctx-size", "8192",
     "--metrics"
   ]
   startup_timeout: 120  # seconds to wait for server to be ready
@@ -22,23 +24,8 @@ serve:
 puzzles:
   - box_rows: 2
     box_cols: 2
-    diffs: [0.25, 0.5, 0.75]
-    tests_per_diff: 3
-  - box_rows: 2
-    box_cols: 3
-    diffs: [0.25, 0.5, 0.75]
-    tests_per_diff: 3
-  - box_rows: 3
-    box_cols: 3
-    diffs: [0.25, 0.5, 0.75]
-    tests_per_diff: 5
-  - box_rows: 3
-    box_cols: 4
-    diffs: [0.25, 0.5, 0.75]
-    tests_per_diff: 3
-  - box_rows: 4
-    box_cols: 4
-    diffs: [0.25, 0.5, 0.75]
+    # diffs: [0.25, 0.5, 0.75]
+    diffs: [0.75]
     tests_per_diff: 3
 
 benchmark:

@@ -11,6 +11,7 @@ from sudoku_bench.config import load_config
 from sudoku_bench.feedback import generate_feedback
 from sudoku_bench.formatter import format_board
 from backends.vllm.monitor import VLLMMonitor
+from backends.llamacpp.monitor import LlamaCppMonitor
 from sudoku_bench.gpu_monitor import GPUMonitor
 from sudoku_bench.metrics import PuzzleMetrics, append_csv_row
 from sudoku_bench.model_info import detect_model_info
@@ -50,6 +51,24 @@ numbers, keep * on given cells):
 
 
 # ── Board helpers ─────────────────────────────────────────────────────────────
+
+def _filter_puzzles(puzzles: list[PuzzleRecord], config) -> list[PuzzleRecord]:
+    """Return only puzzles matching the config's puzzle specs, capped at tests_per_diff."""
+    result = []
+    for pc in config.puzzles:
+        diffs = set(pc.diffs)
+        seen: dict[float, int] = {}
+        for record in puzzles:
+            if record.box_rows != pc.box_rows or record.box_cols != pc.box_cols:
+                continue
+            if record.difficulty not in diffs:
+                continue
+            if seen.get(record.difficulty, 0) >= pc.tests_per_diff:
+                continue
+            result.append(record)
+            seen[record.difficulty] = seen.get(record.difficulty, 0) + 1
+    return result
+
 
 def _record_to_board(record: PuzzleRecord) -> Board:
     """Convert a PuzzleRecord to a Board (using givens as frozenset)."""
@@ -219,10 +238,23 @@ def main() -> None:
 
     server_proc = None
     if config.serve:
-        print(f"Starting server: {' '.join(config.serve.command)}")
+        model_name = config.model.name or ""
+        # For GGUF models specified as "repo:tag", split into repo and tag parts
+        if ":" in model_name:
+            model_repo, model_tag = model_name.rsplit(":", 1)
+        else:
+            model_repo, model_tag = model_name, ""
+        command = [
+            arg
+            .replace("{model}", model_name)
+            .replace("{model_repo}", model_repo)
+            .replace("{model_tag}", model_tag)
+            for arg in config.serve.command
+        ]
+        print(f"Starting server: {' '.join(command)}")
         try:
             server_proc = start_server(
-                command=config.serve.command,
+                command=command,
                 api_base=config.model.api_base,
                 startup_timeout=config.serve.startup_timeout,
             )
@@ -255,6 +287,8 @@ def _run_benchmark(config, config_path: Path) -> None:
 
     bank_path = Path(config.benchmark.puzzle_bank_file)
     puzzles = load_bank(bank_path)
+    if config.puzzles:
+        puzzles = _filter_puzzles(puzzles, config)
     if not puzzles:
         print(f"No puzzles found at {bank_path}. Run: sudoku-gen {config_path}")
         sys.exit(1)
@@ -267,6 +301,12 @@ def _run_benchmark(config, config_path: Path) -> None:
             poll_interval=config.benchmark.gpu_poll_interval,
         )
         print("  Monitor: vLLM /metrics")
+    elif model_info.backend_type == "llamacpp":
+        monitor = LlamaCppMonitor(
+            api_base=config.model.api_base,
+            poll_interval=config.benchmark.gpu_poll_interval,
+        )
+        print("  Monitor: llama.cpp /metrics + nvidia-smi")
     else:
         monitor = GPUMonitor(poll_interval=config.benchmark.gpu_poll_interval)
         print("  Monitor: nvidia-smi")

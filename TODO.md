@@ -1,0 +1,13 @@
+- (scraped) Make vllm work 
+- Investigate "(APIServer pid=153890) WARNING 03-29 10:21:46 [interface.py:472] Using 'pin_memory=False' as WSL is detected. This may slow down the performance."
+
+- Make llama.cpp work
+- Make sure the final output has all info needed 
+  - Make sure puzzle difficulty and size are present
+  - ask the LLM what might be helpful for this project
+- Make vllm set temperature to 0.1 for consistency
+- Double check the default settings for vLLM to make sure things like auto prune context or other silent things that would influence tests are not present
+- Add RAM safeguards (weights+full KV) to the start of the run
+  - eg quickly fail if estimated RAM use is greater than GPU vRAM + half of system ram
+  - Estimate RAM from model via file size calculations
+  - Estimate RAM from KV via size at full context length
