@@ -41,6 +41,17 @@ model:
   # context_window: 32768                     # set if backend doesn't report it
 ```
 
+For GGUF repos, use `repo_id:quant_type` to select a specific quantization. Many GGUF repos lack a `config.json`, so use `--hf-config-path` pointing to the base model (found in the repo's tags/README on HuggingFace):
+
+```yaml
+model:
+  api_base: "http://localhost:8000/v1"
+  name: "unsloth/Qwen3.5-9B-GGUF:Q4_K_M"
+serve:
+  command: ["vllm", "serve", "{model}", "--hf-config-path", "Qwen/Qwen3.5-9B"]
+  startup_timeout: 120
+```
+
 `context_window` is required. It's auto-detected for Ollama. For vLLM and other backends that don't report it, set it manually.
 
 ### Auto-starting the server

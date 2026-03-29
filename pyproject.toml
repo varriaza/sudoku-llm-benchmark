@@ -11,7 +11,8 @@ dependencies = [
     "openai>=1.0.0",
     "pyyaml>=6.0",
     "psutil>=5.9",
-    "vllm",
+    "vllm==0.18.0",
+    "transformers>=4.40.0",
 ]
 
 [project.optional-dependencies]

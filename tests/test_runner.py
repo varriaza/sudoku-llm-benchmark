@@ -2,8 +2,9 @@
 from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
-from sudoku_bench.runner import run_puzzle, main
+from sudoku_bench.runner import run_puzzle, main, _filter_puzzles
 from sudoku_bench.puzzle_bank import PuzzleRecord
+from sudoku_bench.config import PuzzleSetConfig
 
 
 def _make_record() -> PuzzleRecord:
@@ -123,3 +124,71 @@ def test_model_placeholder_substituted_in_serve_command():
         main()
 
     assert captured["command"] == ["vllm", "serve", "meta-llama/Llama-3.1-8B-Instruct"]
+
+
+# ── _filter_puzzles ───────────────────────────────────────────────────────────
+
+def _make_records() -> list[PuzzleRecord]:
+    """A small bank: 2x2 and 3x3, each at difficulties 0.25 and 0.5, 2 per diff."""
+    base = dict(board=[[None]], givens=[], solution=[[1]])
+    return [
+        PuzzleRecord(id=f"{r}x{c}_d{d:.2f}_{i:04d}", box_rows=r, box_cols=c, difficulty=d, **base)
+        for r, c in [(2, 2), (3, 3)]
+        for d in [0.25, 0.5]
+        for i in [1, 2]
+    ]
+
+
+def _cfg(*specs):
+    """Build a minimal config stub with the given PuzzleSetConfig list."""
+    cfg = MagicMock()
+    cfg.puzzles = list(specs)
+    return cfg
+
+
+def test_filter_by_dimensions():
+    """Only puzzles matching box_rows/box_cols are returned."""
+    puzzles = _make_records()
+    result = _filter_puzzles(puzzles, _cfg(PuzzleSetConfig(box_rows=2, box_cols=2, diffs=[0.25, 0.5], tests_per_diff=2)))
+    assert all(r.box_rows == 2 and r.box_cols == 2 for r in result)
+    assert len(result) == 4
+
+
+def test_filter_by_difficulty():
+    """Only puzzles whose difficulty is in diffs are returned."""
+    puzzles = _make_records()
+    result = _filter_puzzles(puzzles, _cfg(PuzzleSetConfig(box_rows=2, box_cols=2, diffs=[0.25], tests_per_diff=2)))
+    assert all(r.difficulty == 0.25 for r in result)
+    assert len(result) == 2
+
+
+def test_filter_respects_tests_per_diff():
+    """At most tests_per_diff puzzles per difficulty are returned."""
+    puzzles = _make_records()
+    result = _filter_puzzles(puzzles, _cfg(PuzzleSetConfig(box_rows=2, box_cols=2, diffs=[0.25, 0.5], tests_per_diff=1)))
+    assert len(result) == 2  # 1 per difficulty
+
+
+def test_filter_multiple_specs():
+    """Multiple PuzzleSetConfigs are each applied and results combined."""
+    puzzles = _make_records()
+    result = _filter_puzzles(puzzles, _cfg(
+        PuzzleSetConfig(box_rows=2, box_cols=2, diffs=[0.25], tests_per_diff=2),
+        PuzzleSetConfig(box_rows=3, box_cols=3, diffs=[0.5], tests_per_diff=1),
+    ))
+    ids = [r.id for r in result]
+    assert sum(1 for r in result if r.box_rows == 2) == 2
+    assert sum(1 for r in result if r.box_rows == 3) == 1
+    assert len(ids) == 3
+
+
+def test_filter_empty_bank():
+    """Empty bank returns empty list without error."""
+    result = _filter_puzzles([], _cfg(PuzzleSetConfig(box_rows=2, box_cols=2, diffs=[0.25], tests_per_diff=3)))
+    assert result == []
+
+
+def test_filter_no_specs():
+    """Empty puzzles config returns empty list."""
+    result = _filter_puzzles(_make_records(), _cfg())
+    assert result == []

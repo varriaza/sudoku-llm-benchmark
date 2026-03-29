@@ -52,6 +52,24 @@ numbers, keep * on given cells):
 
 # ── Board helpers ─────────────────────────────────────────────────────────────
 
+def _filter_puzzles(puzzles: list[PuzzleRecord], config) -> list[PuzzleRecord]:
+    """Return only puzzles matching the config's puzzle specs, capped at tests_per_diff."""
+    result = []
+    for pc in config.puzzles:
+        diffs = set(pc.diffs)
+        seen: dict[float, int] = {}
+        for record in puzzles:
+            if record.box_rows != pc.box_rows or record.box_cols != pc.box_cols:
+                continue
+            if record.difficulty not in diffs:
+                continue
+            if seen.get(record.difficulty, 0) >= pc.tests_per_diff:
+                continue
+            result.append(record)
+            seen[record.difficulty] = seen.get(record.difficulty, 0) + 1
+    return result
+
+
 def _record_to_board(record: PuzzleRecord) -> Board:
     """Convert a PuzzleRecord to a Board (using givens as frozenset)."""
     return Board(
@@ -269,6 +287,8 @@ def _run_benchmark(config, config_path: Path) -> None:
 
     bank_path = Path(config.benchmark.puzzle_bank_file)
     puzzles = load_bank(bank_path)
+    if config.puzzles:
+        puzzles = _filter_puzzles(puzzles, config)
     if not puzzles:
         print(f"No puzzles found at {bank_path}. Run: sudoku-gen {config_path}")
         sys.exit(1)
