@@ -11,6 +11,7 @@ from sudoku_bench.config import load_config
 from sudoku_bench.feedback import generate_feedback
 from sudoku_bench.formatter import format_board
 from backends.vllm.monitor import VLLMMonitor
+from backends.llamacpp.monitor import LlamaCppMonitor
 from sudoku_bench.gpu_monitor import GPUMonitor
 from sudoku_bench.metrics import PuzzleMetrics, append_csv_row
 from sudoku_bench.model_info import detect_model_info
@@ -220,7 +221,18 @@ def main() -> None:
     server_proc = None
     if config.serve:
         model_name = config.model.name or ""
-        command = [arg.replace("{model}", model_name) for arg in config.serve.command]
+        # For GGUF models specified as "repo:tag", split into repo and tag parts
+        if ":" in model_name:
+            model_repo, model_tag = model_name.rsplit(":", 1)
+        else:
+            model_repo, model_tag = model_name, ""
+        command = [
+            arg
+            .replace("{model}", model_name)
+            .replace("{model_repo}", model_repo)
+            .replace("{model_tag}", model_tag)
+            for arg in config.serve.command
+        ]
         print(f"Starting server: {' '.join(command)}")
         try:
             server_proc = start_server(
@@ -269,6 +281,12 @@ def _run_benchmark(config, config_path: Path) -> None:
             poll_interval=config.benchmark.gpu_poll_interval,
         )
         print("  Monitor: vLLM /metrics")
+    elif model_info.backend_type == "llamacpp":
+        monitor = LlamaCppMonitor(
+            api_base=config.model.api_base,
+            poll_interval=config.benchmark.gpu_poll_interval,
+        )
+        print("  Monitor: llama.cpp /metrics + nvidia-smi")
     else:
         monitor = GPUMonitor(poll_interval=config.benchmark.gpu_poll_interval)
         print("  Monitor: nvidia-smi")
