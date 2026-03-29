@@ -16,6 +16,7 @@ from sudoku_bench.metrics import PuzzleMetrics, append_csv_row
 from sudoku_bench.model_info import detect_model_info
 from sudoku_bench.parser import parse_board
 from sudoku_bench.puzzle_bank import load_bank, PuzzleRecord
+from sudoku_bench.server import start_server, stop_server
 from sudoku_bench.validator import validate
 
 
@@ -216,6 +217,27 @@ def main() -> None:
     config_path = Path(sys.argv[1])
     config = load_config(config_path)
 
+    server_proc = None
+    if config.serve:
+        print(f"Starting server: {' '.join(config.serve.command)}")
+        try:
+            server_proc = start_server(
+                command=config.serve.command,
+                api_base=config.model.api_base,
+                startup_timeout=config.serve.startup_timeout,
+            )
+        except (RuntimeError, TimeoutError) as e:
+            print(f"Error: {e}")
+            sys.exit(1)
+        print("  Server ready.")
+
+    try:
+        _run_benchmark(config, config_path)
+    finally:
+        stop_server(server_proc)
+
+
+def _run_benchmark(config, config_path: Path) -> None:
     print(f"Detecting model info from {config.model.api_base}...")
     model_info = detect_model_info(config.model.api_base, config.model.name)
 

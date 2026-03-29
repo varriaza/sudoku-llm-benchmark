@@ -30,10 +30,17 @@ class BenchmarkConfig:
 
 
 @dataclass
+class ServeConfig:
+    command: list[str]
+    startup_timeout: int = 120  # seconds to wait for API to be ready
+
+
+@dataclass
 class Config:
     model: ModelConfig
     puzzles: list[PuzzleSetConfig]
     benchmark: BenchmarkConfig
+    serve: Optional[ServeConfig] = None
 
 
 def load_config(path: Path) -> Config:
@@ -45,5 +52,6 @@ def load_config(path: Path) -> Config:
     model = ModelConfig(**raw.get("model", {}))
     puzzles = [PuzzleSetConfig(**p) for p in raw.get("puzzles", [])]
     benchmark = BenchmarkConfig(**raw.get("benchmark", {}))
+    serve = ServeConfig(**raw["serve"]) if "serve" in raw else None
 
-    return Config(model=model, puzzles=puzzles, benchmark=benchmark)
+    return Config(model=model, puzzles=puzzles, benchmark=benchmark, serve=serve)

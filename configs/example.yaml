@@ -1,7 +1,13 @@
 model:
-  api_base: "http://localhost:11434/v1"
-  name: "llama3:70b-q4_K_M"   # optional — auto-detected if omitted
-  # context_window: 32768       # set manually if backend doesn't report it
+  api_base: "http://localhost:8000/v1"
+  name: "meta-llama/Llama-3.1-8B-Instruct"  # optional — auto-detected if omitted
+  # context_window: 32768                     # set manually if backend doesn't report it
+
+# Optional: if set, sudoku-bench will start and stop the server automatically.
+# Remove this section if you are managing the server yourself.
+# serve:
+#   command: ["vllm", "serve", "meta-llama/Llama-3.1-8B-Instruct"]
+#   startup_timeout: 120    # seconds to wait for server to be ready
 
 puzzles:
   - box_rows: 2
