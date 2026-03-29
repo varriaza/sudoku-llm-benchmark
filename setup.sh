@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Save shell options so sourcing this script doesn't pollute the caller's shell
+_setup_saved_opts=$(set +o)
 set -euo pipefail
 
 NVIDIA=0
@@ -27,6 +29,7 @@ echo "    uv $(uv --version)"
 echo "==> Setting up Python environment..."
 uv venv --python 3.11 --clear
 uv pip install -e ".[dev]"
+uv pip install vllm
 echo "    Python environment ready."
 
 # ── Validate base install ─────────────────────────────────────────────────────
@@ -86,3 +89,7 @@ echo "  uv run sudoku-gen config.example.yaml"
 echo ""
 echo "To run the benchmark:"
 echo "  uv run sudoku-bench config.yaml"
+
+# Restore caller's shell options if this script was sourced
+eval "$_setup_saved_opts"
+unset _setup_saved_opts
