@@ -32,14 +32,32 @@ Copy the example config and edit it:
 cp configs/example.yaml configs/my_model.yaml
 ```
 
-Key fields:
+### Model
 
 ```yaml
 model:
-  api_base: "http://localhost:11434/v1"  # your model server
-  name: "llama3:70b-q4_K_M"             # omit to auto-detect
-  # context_window: 32768               # set if backend doesn't report it
+  api_base: "http://localhost:8000/v1"
+  name: "meta-llama/Llama-3.1-8B-Instruct"  # omit to auto-detect
+  # context_window: 32768                     # set if backend doesn't report it
+```
 
+`context_window` is required. It's auto-detected for Ollama. For vLLM and other backends that don't report it, set it manually.
+
+### Auto-starting the server
+
+Add a `serve:` block and `sudoku-bench` will start the server for you, wait until it's ready, and shut it down when the benchmark finishes (including on Ctrl-C or errors):
+
+```yaml
+serve:
+  command: ["vllm", "serve", "meta-llama/Llama-3.1-8B-Instruct"]
+  startup_timeout: 120  # seconds to wait for server to be ready
+```
+
+Remove the `serve:` block if you prefer to manage the server yourself.
+
+### Puzzles
+
+```yaml
 puzzles:
   - box_rows: 3
     box_cols: 3
@@ -47,23 +65,27 @@ puzzles:
     tests_per_diff: 5
 ```
 
-`diffs` follows the `py-sudoku` convention: `0.4` means 40% of cells are empty (higher = harder).
+`box_rows` × `box_cols` determines the board size (e.g. 3×3 boxes → 9×9 board). `diffs` follows the `py-sudoku` convention: `0.4` means 40% of cells are empty (higher = harder).
+
+Supported board sizes: 4×4, 6×6, 9×9, 12×12, 16×16.
 
 ## Usage
 
-**Step 1 — Generate the puzzle bank** (once, or when you change the puzzle config):
+**Step 1 — Generate the puzzle bank** (run once, or when you change the puzzle config):
 
 ```bash
 uv run sudoku-gen configs/my_model.yaml
 ```
 
-**Step 2 — Run the benchmark** (requires a model server running at `api_base`):
+**Step 2 — Run the benchmark:**
 
 ```bash
 uv run sudoku-bench configs/my_model.yaml
 ```
 
-Results are appended to the CSV file configured in `benchmark.results_file` (default: `results/benchmark.csv`).
+If you have a `serve:` block in your config, this is the only command you need — the server starts and stops automatically. Otherwise, make sure your model server is running at `api_base` before this step.
+
+Results are appended to the CSV file set in `benchmark.results_file` (default: `results/benchmark.csv`).
 
 ## Running tests
 
@@ -78,6 +100,8 @@ One CSV row per puzzle run. Key columns:
 | Column | Description |
 |--------|-------------|
 | `model_name` | Auto-detected model identifier |
+| `model_params` | Parameter count (e.g. `70B`) |
+| `model_quant` | Quantization level (e.g. `Q4_K_M`) |
 | `board_size` | e.g. `9x9` |
 | `difficulty` | Difficulty float (0–1) |
 | `solved` | Whether the model solved the puzzle |
@@ -85,15 +109,18 @@ One CSV row per puzzle run. Key columns:
 | `total_tokens` | Total tokens used |
 | `context_pct_used` | Context window % used at end |
 | `total_turns` | Number of feedback rounds |
-| `max_vram_mb` | Peak VRAM usage |
+| `max_vram_mb` | Peak VRAM usage (Nvidia only) |
 | `spilled_to_ram` | Whether the model exceeded VRAM |
+| `total_ram_mb` | Peak VRAM + peak system RAM combined |
 
 ## Supported backends
 
 Any server exposing an OpenAI-compatible `/v1/chat/completions` endpoint:
 
-- [Ollama](https://ollama.com)
-- [vLLM](https://github.com/vllm-project/vllm)
-- [llama.cpp](https://github.com/ggerganov/llama.cpp) (server mode)
+| Backend | Auto-detect | GPU metrics |
+|---------|-------------|-------------|
+| [Ollama](https://ollama.com) | Model name, context window | nvidia-smi |
+| [vLLM](https://github.com/vllm-project/vllm) | Model name | `/metrics` endpoint (KV-cache usage, spill detection) |
+| [llama.cpp](https://github.com/ggerganov/llama.cpp) (server mode) | Model name | nvidia-smi |
 
-Model name, parameter count, quantization, and context window are auto-detected where the backend supports it. Set `model.context_window` in your config if your backend doesn't report it.
+For vLLM, GPU metrics come from its Prometheus `/metrics` endpoint rather than nvidia-smi, giving more accurate spill detection via KV-cache CPU usage.
