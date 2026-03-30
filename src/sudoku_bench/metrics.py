@@ -10,6 +10,9 @@ CSV_COLUMNS = [
     "model_name",
     "model_params",
     "model_quant",
+    "bits_per_weight",
+    "model_file_size_gb",
+    "backend",
     "gpu_name",
     "gpu_max_vram_mb",
     "board_size",
@@ -21,6 +24,9 @@ CSV_COLUMNS = [
     "best_num_errors",
     "final_num_errors",
     "total_tokens",
+    "prompt_tokens",
+    "completion_tokens",
+    "tokens_per_second",
     "context_tokens_used",
     "context_pct_used",
     "total_turns",
@@ -40,6 +46,9 @@ class PuzzleMetrics:
     model_name: str
     model_params: Optional[str]
     model_quant: Optional[str]
+    bits_per_weight: Optional[float]
+    model_file_size_gb: Optional[float]
+    backend: str
     gpu_name: Optional[str]
     gpu_max_vram_mb: Optional[int]
     board_size: str
@@ -51,6 +60,9 @@ class PuzzleMetrics:
     best_num_errors: int
     final_num_errors: int
     total_tokens: int
+    prompt_tokens: int
+    completion_tokens: int
+    tokens_per_second: Optional[float]
     context_tokens_used: int
     context_pct_used: float
     total_turns: int
