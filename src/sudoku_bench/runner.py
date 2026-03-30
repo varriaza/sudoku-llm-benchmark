@@ -101,6 +101,7 @@ def run_puzzle(
     context_window: Optional[int],
     context_buffer: int,
     max_turns: int = 50,
+    temperature: Optional[float] = None,
 ) -> dict:
     """
     Run one puzzle to completion (or context exhaustion).
@@ -126,6 +127,8 @@ def run_puzzle(
     solved = False
     total_turns = 0
     total_tokens = 0
+    total_prompt_tokens = 0
+    total_completion_tokens = 0
     context_tokens_used = 0
     malformed_submissions = 0
     best_pct = 0.0
@@ -139,6 +142,7 @@ def run_puzzle(
         response = client.chat.completions.create(
             model=model_name,
             messages=messages,
+            **({"temperature": temperature} if temperature is not None else {}),
         )
 
         usage = response.usage
@@ -152,6 +156,8 @@ def run_puzzle(
             reasoning = 0
 
         total_tokens += completion_tokens + reasoning
+        total_prompt_tokens += prompt_tokens
+        total_completion_tokens += completion_tokens + reasoning
         context_tokens_used = prompt_tokens + completion_tokens + reasoning
 
         assistant_text = response.choices[0].message.content or ""
@@ -210,6 +216,11 @@ def run_puzzle(
         if context_window
         else 0.0
     )
+    tokens_per_second = (
+        round(total_completion_tokens / total_seconds, 2)
+        if total_seconds > 0
+        else None
+    )
 
     return {
         "solved": solved,
@@ -218,6 +229,9 @@ def run_puzzle(
         "best_num_errors": best_errors if best_errors < 9999 else 0,
         "final_num_errors": final_errors,
         "total_tokens": total_tokens,
+        "prompt_tokens": total_prompt_tokens,
+        "completion_tokens": total_completion_tokens,
+        "tokens_per_second": tokens_per_second,
         "context_tokens_used": context_tokens_used,
         "context_pct_used": context_pct,
         "total_turns": total_turns,
@@ -269,6 +283,16 @@ def main() -> None:
         stop_server(server_proc)
 
 
+def _model_file_size_gb(model_path: Optional[str]) -> Optional[float]:
+    if model_path is None:
+        return None
+    try:
+        size_bytes = Path(model_path).stat().st_size
+        return round(size_bytes / 1e9, 3)
+    except OSError:
+        return None
+
+
 def _run_benchmark(config, config_path: Path) -> None:
     print(f"Detecting model info from {config.model.api_base}...")
     model_info = detect_model_info(config.model.api_base, config.model.name)
@@ -283,7 +307,11 @@ def _run_benchmark(config, config_path: Path) -> None:
     print(f"  Model: {model_info.name}")
     print(f"  Params: {model_info.params or 'unknown'}")
     print(f"  Quant: {model_info.quant or 'unknown'}")
+    print(f"  BPW: {model_info.bits_per_weight or 'unknown'}")
+    print(f"  Backend: {model_info.backend_type}")
     print(f"  Context window: {context_window}")
+
+    model_file_size = _model_file_size_gb(config.model.model_path)
 
     bank_path = Path(config.benchmark.puzzle_bank_file)
     puzzles = load_bank(bank_path)
@@ -326,6 +354,7 @@ def _run_benchmark(config, config_path: Path) -> None:
                 context_window=context_window,
                 context_buffer=config.benchmark.context_buffer_tokens,
                 max_turns=config.benchmark.max_turns_per_puzzle,
+                temperature=0.1,
             )
         finally:
             gpu_stats = monitor.stop()
@@ -338,6 +367,9 @@ def _run_benchmark(config, config_path: Path) -> None:
             model_name=model_info.name,
             model_params=model_info.params,
             model_quant=model_info.quant,
+            bits_per_weight=model_info.bits_per_weight,
+            model_file_size_gb=model_file_size,
+            backend=model_info.backend_type,
             gpu_name=gpu_stats.gpu_name,
             gpu_max_vram_mb=gpu_stats.gpu_max_vram_mb,
             board_size=f"{size}x{size}",
@@ -349,6 +381,9 @@ def _run_benchmark(config, config_path: Path) -> None:
             best_num_errors=stats["best_num_errors"],
             final_num_errors=stats["final_num_errors"],
             total_tokens=stats["total_tokens"],
+            prompt_tokens=stats["prompt_tokens"],
+            completion_tokens=stats["completion_tokens"],
+            tokens_per_second=stats["tokens_per_second"],
             context_tokens_used=stats["context_tokens_used"],
             context_pct_used=stats["context_pct_used"],
             total_turns=stats["total_turns"],

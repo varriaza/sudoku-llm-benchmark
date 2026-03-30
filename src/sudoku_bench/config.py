@@ -10,6 +10,7 @@ class ModelConfig:
     api_base: str = "http://localhost:11434/v1"
     name: Optional[str] = None
     context_window: Optional[int] = None
+    model_path: Optional[str] = None  # local file path for model_file_size_gb
 
 
 @dataclass
