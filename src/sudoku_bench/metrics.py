@@ -10,6 +10,9 @@ CSV_COLUMNS = [
     "model_name",
     "model_params",
     "model_quant",
+    "bits_per_weight",
+    "model_file_size_gb",
+    "backend",
     "gpu_name",
     "gpu_max_vram_mb",
     "board_size",
@@ -51,6 +54,9 @@ class PuzzleMetrics:
     model_name: str
     model_params: Optional[str]
     model_quant: Optional[str]
+    bits_per_weight: Optional[float]
+    model_file_size_gb: Optional[float]
+    backend: str
     gpu_name: Optional[str]
     gpu_max_vram_mb: Optional[int]
     board_size: str
