@@ -29,7 +29,7 @@ puzzles:
 
 benchmark:
   gpu_poll_interval: 1.0          # seconds between metric polls
-  results_file: "results/benchmark.csv"
+  results_file: "results/simple_sanity_benchmark.csv"
   puzzle_bank_file: "puzzles/puzzles.json"
   context_buffer_tokens: 500      # reserve this many tokens before context is "full"
   max_turns_per_puzzle: 200       # hard cap on turns per puzzle (safety net)

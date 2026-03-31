@@ -207,8 +207,7 @@ marimo/_lsp/
 __marimo__/
 
 # Project-specific
-results/
-*.csv
+results/*.csv
 .gpu_provider
 
 # Claude superpowers
