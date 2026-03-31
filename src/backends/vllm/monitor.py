@@ -13,6 +13,7 @@ What vLLM /metrics provides vs gpu_monitor:
 from __future__ import annotations
 
 import re
+import statistics
 import threading
 import urllib.request
 from typing import Optional
@@ -58,6 +59,21 @@ def _parse_gauge(text: str, metric_name: str) -> Optional[float]:
     return value
 
 
+# ── Speed stats helper ────────────────────────────────────────────────────────
+
+def _speed_stats(
+    samples: list[float],
+) -> tuple[Optional[float], Optional[float], Optional[float]]:
+    """Return (avg, median, max) rounded to 2 dp, or (None, None, None) if empty."""
+    if not samples:
+        return None, None, None
+    return (
+        round(sum(samples) / len(samples), 2),
+        round(statistics.median(samples), 2),
+        round(max(samples), 2),
+    )
+
+
 # ── Monitor ───────────────────────────────────────────────────────────────────
 
 def _metrics_url(api_base: str) -> str:
@@ -86,12 +102,16 @@ class VLLMMonitor:
         self._gpu_cache_samples: list[float] = []
         self._cpu_cache_samples: list[float] = []
         self._sys_ram_samples: list[int] = []
+        self._gen_toks_samples: list[float] = []
+        self._prompt_toks_samples: list[float] = []
 
     def start(self) -> None:
         self._stop_event.clear()
         self._gpu_cache_samples = []
         self._cpu_cache_samples = []
         self._sys_ram_samples = []
+        self._gen_toks_samples = []
+        self._prompt_toks_samples = []
         self._thread = threading.Thread(target=self._poll_loop, daemon=True)
         self._thread.start()
 
@@ -111,10 +131,16 @@ class VLLMMonitor:
         if text:
             gpu = _parse_gauge(text, "vllm:gpu_cache_usage_perc")
             cpu = _parse_gauge(text, "vllm:cpu_cache_usage_perc")
+            gen = _parse_gauge(text, "vllm:avg_generation_throughput_toks_per_s")
+            prompt = _parse_gauge(text, "vllm:avg_prompt_throughput_toks_per_s")
             if gpu is not None:
                 self._gpu_cache_samples.append(gpu)
             if cpu is not None:
                 self._cpu_cache_samples.append(cpu)
+            if gen is not None:
+                self._gen_toks_samples.append(gen)
+            if prompt is not None:
+                self._prompt_toks_samples.append(prompt)
 
         ram_mb = int(psutil.virtual_memory().used / 1024 / 1024)
         self._sys_ram_samples.append(ram_mb)
@@ -132,6 +158,9 @@ class VLLMMonitor:
             avg_sys = None
             max_sys = None
 
+        avg_gen, median_gen, max_gen = _speed_stats(self._gen_toks_samples)
+        avg_prompt, median_prompt, max_prompt = _speed_stats(self._prompt_toks_samples)
+
         # avg_vram_mb and max_vram_mb are None — vLLM /metrics exposes
         # KV-cache as a fraction (0–1), not raw VRAM in MB, so we cannot
         # populate those columns without knowing total VRAM capacity.
@@ -143,4 +172,10 @@ class VLLMMonitor:
             spilled_to_ram=spilled,
             avg_sys_ram_mb=avg_sys,
             max_sys_ram_mb=max_sys,
+            avg_gen_toks_per_sec=avg_gen,
+            median_gen_toks_per_sec=median_gen,
+            max_gen_toks_per_sec=max_gen,
+            avg_prompt_toks_per_sec=avg_prompt,
+            median_prompt_toks_per_sec=median_prompt,
+            max_prompt_toks_per_sec=max_prompt,
         )

@@ -20,13 +20,21 @@ def make_metrics(**kwargs):
         final_pct_correct=100.0,
         best_num_errors=0,
         final_num_errors=0,
-        total_tokens=4500,
-        prompt_tokens=3800,
-        completion_tokens=700,
-        tokens_per_second=15.5,
-        context_tokens_used=4500,
+        num_input_tokens=4000,
+        num_thinking_tokens=200,
+        num_output_tokens=300,
+        total_response_tokens=500,
+        total_tokens_used=4500,
         context_pct_used=22.5,
+        avg_gen_toks_per_sec=42.5,
+        median_gen_toks_per_sec=41.0,
+        max_gen_toks_per_sec=55.0,
+        avg_prompt_toks_per_sec=1200.0,
+        median_prompt_toks_per_sec=1150.0,
+        max_prompt_toks_per_sec=1400.0,
         total_turns=3,
+        run_started_at="2026-03-30T14:00:00+00:00",
+        run_finished_at="2026-03-30T14:00:45+00:00",
         total_seconds=45.2,
         avg_vram_mb=18000.0,
         max_vram_mb=19200,
@@ -72,14 +80,14 @@ def test_append_second_row_no_duplicate_header(tmp_path):
 
 def test_append_values_correct(tmp_path):
     path = tmp_path / "results.csv"
-    m = make_metrics(puzzle_id="9x9_d0.50_0001", solved=True, total_tokens=9999)
+    m = make_metrics(puzzle_id="9x9_d0.50_0001", solved=True, total_tokens_used=9999)
     append_csv_row(m, path)
     with open(path) as f:
         reader = csv.DictReader(f)
         row = next(reader)
     assert row["puzzle_id"] == "9x9_d0.50_0001"
     assert row["solved"] == "True"
-    assert row["total_tokens"] == "9999"
+    assert row["total_tokens_used"] == "9999"
 
 
 def test_append_none_values_as_empty_string(tmp_path):

@@ -23,13 +23,21 @@ CSV_COLUMNS = [
     "final_pct_correct",
     "best_num_errors",
     "final_num_errors",
-    "total_tokens",
-    "prompt_tokens",
-    "completion_tokens",
-    "tokens_per_second",
-    "context_tokens_used",
+    "num_input_tokens",
+    "num_thinking_tokens",
+    "num_output_tokens",
+    "total_response_tokens",
+    "total_tokens_used",
     "context_pct_used",
+    "avg_gen_toks_per_sec",
+    "median_gen_toks_per_sec",
+    "max_gen_toks_per_sec",
+    "avg_prompt_toks_per_sec",
+    "median_prompt_toks_per_sec",
+    "max_prompt_toks_per_sec",
     "total_turns",
+    "run_started_at",
+    "run_finished_at",
     "total_seconds",
     "avg_vram_mb",
     "max_vram_mb",
@@ -59,13 +67,21 @@ class PuzzleMetrics:
     final_pct_correct: float
     best_num_errors: int
     final_num_errors: int
-    total_tokens: int
-    prompt_tokens: int
-    completion_tokens: int
-    tokens_per_second: Optional[float]
-    context_tokens_used: int
+    num_input_tokens: int
+    num_thinking_tokens: int
+    num_output_tokens: int
+    total_response_tokens: int
+    total_tokens_used: int
     context_pct_used: float
+    avg_gen_toks_per_sec: Optional[float]
+    median_gen_toks_per_sec: Optional[float]
+    max_gen_toks_per_sec: Optional[float]
+    avg_prompt_toks_per_sec: Optional[float]
+    median_prompt_toks_per_sec: Optional[float]
+    max_prompt_toks_per_sec: Optional[float]
     total_turns: int
+    run_started_at: str
+    run_finished_at: str
     total_seconds: float
     avg_vram_mb: Optional[float]
     max_vram_mb: Optional[int]

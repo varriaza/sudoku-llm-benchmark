@@ -2,9 +2,14 @@
 llama.cpp metrics monitor.
 
 Polls three sources on each tick:
-  1. GET <api_base>/metrics  — Prometheus text; reads llamacpp:kv_cache_usage_ratio
-     (requires --metrics flag on llama-server). ratio >= 1.0 means KV cache is full
-     and inference is spilling to CPU RAM.
+  1. GET <api_base>/metrics  — Prometheus text; reads:
+       llamacpp:kv_cache_usage_ratio       (spill detection; ratio >= 1.0 = spilling)
+       llamacpp:tokens_predicted_total     (cumulative generation tokens)
+       llamacpp:tokens_predicted_seconds_total (cumulative generation time)
+       llamacpp:prompt_tokens_total        (cumulative prompt tokens)
+       llamacpp:prompt_seconds_total       (cumulative prompt processing time)
+     Requires --metrics flag on llama-server. Token speeds are derived from
+     per-poll counter deltas (delta_tokens / delta_seconds).
   2. nvidia-smi              — raw VRAM in MB (gpu_name, avg/max_vram_mb, gpu_max_vram_mb)
   3. psutil                  — system RAM (avg/max_sys_ram_mb); always sampled.
 
@@ -17,6 +22,7 @@ NOTE: nvidia-smi polling logic is duplicated from sudoku_bench.gpu_monitor.GPUMo
 from __future__ import annotations
 
 import re
+import statistics
 import subprocess
 import threading
 import urllib.request
@@ -65,6 +71,21 @@ def _parse_gauge(text: str, metric_name: str) -> Optional[float]:
     return value
 
 
+# ── Speed stats helper ────────────────────────────────────────────────────────
+
+def _speed_stats(
+    samples: list[float],
+) -> tuple[Optional[float], Optional[float], Optional[float]]:
+    """Return (avg, median, max) rounded to 2 dp, or (None, None, None) if empty."""
+    if not samples:
+        return None, None, None
+    return (
+        round(sum(samples) / len(samples), 2),
+        round(statistics.median(samples), 2),
+        round(max(samples), 2),
+    )
+
+
 # ── Monitor ───────────────────────────────────────────────────────────────────
 
 def _metrics_url(api_base: str) -> str:
@@ -94,6 +115,12 @@ class LlamaCppMonitor:
         self._kv_cache_samples: list[float] = []
         self._vram_samples: list[int] = []
         self._sys_ram_samples: list[int] = []
+        self._gen_toks_samples: list[float] = []
+        self._prompt_toks_samples: list[float] = []
+        self._prev_gen_total: Optional[float] = None
+        self._prev_gen_secs: Optional[float] = None
+        self._prev_prompt_total: Optional[float] = None
+        self._prev_prompt_secs: Optional[float] = None
         self._gpu_name: Optional[str] = None
         self._gpu_max_vram_mb: Optional[int] = None
 
@@ -102,6 +129,12 @@ class LlamaCppMonitor:
         self._kv_cache_samples = []
         self._vram_samples = []
         self._sys_ram_samples = []
+        self._gen_toks_samples = []
+        self._prompt_toks_samples = []
+        self._prev_gen_total = None
+        self._prev_gen_secs = None
+        self._prev_prompt_total = None
+        self._prev_prompt_secs = None
         self._gpu_name = None
         self._gpu_max_vram_mb = None
         self._thread = threading.Thread(target=self._poll_loop, daemon=True)
@@ -111,6 +144,10 @@ class LlamaCppMonitor:
         self._stop_event.set()
         if self._thread:
             self._thread.join(timeout=10)
+        # Take one final sample after the puzzle completes. llama-server updates
+        # token counters only when a request finishes, so the regular poll loop
+        # misses the completion delta. This sample captures the final counter state.
+        self._sample()
         return self._compute_stats()
 
     def _poll_loop(self) -> None:
@@ -123,8 +160,33 @@ class LlamaCppMonitor:
         text = _fetch_metrics(self._url)
         if text:
             kv = _parse_gauge(text, "llamacpp:kv_cache_usage_ratio")
+            gen_total = _parse_gauge(text, "llamacpp:tokens_predicted_total")
+            gen_secs = _parse_gauge(text, "llamacpp:tokens_predicted_seconds_total")
+            prompt_total = _parse_gauge(text, "llamacpp:prompt_tokens_total")
+            prompt_secs = _parse_gauge(text, "llamacpp:prompt_seconds_total")
+
             if kv is not None:
                 self._kv_cache_samples.append(kv)
+
+            # Derive generation speed from counter deltas between polls.
+            # Skip if counters are not advancing (server idle between requests).
+            if gen_total is not None and gen_secs is not None:
+                if self._prev_gen_total is not None and self._prev_gen_secs is not None:
+                    d_tok = gen_total - self._prev_gen_total
+                    d_sec = gen_secs - self._prev_gen_secs
+                    if d_sec > 0 and d_tok > 0:
+                        self._gen_toks_samples.append(round(d_tok / d_sec, 2))
+                self._prev_gen_total = gen_total
+                self._prev_gen_secs = gen_secs
+
+            if prompt_total is not None and prompt_secs is not None:
+                if self._prev_prompt_total is not None and self._prev_prompt_secs is not None:
+                    d_tok = prompt_total - self._prev_prompt_total
+                    d_sec = prompt_secs - self._prev_prompt_secs
+                    if d_sec > 0 and d_tok > 0:
+                        self._prompt_toks_samples.append(round(d_tok / d_sec, 2))
+                self._prev_prompt_total = prompt_total
+                self._prev_prompt_secs = prompt_secs
 
         # 2. nvidia-smi
         nv = self._query_nvidia()
@@ -162,10 +224,13 @@ class LlamaCppMonitor:
             return None
 
     def _compute_stats(self) -> GPUStats:
-        # Spill: max KV-cache ratio >= 1.0
+        # Spill: prefer KV-cache ratio (precise); fall back to VRAM comparison
+        # when the llamacpp:kv_cache_usage_ratio metric is absent (older servers).
         if self._kv_cache_samples:
             max_kv = max(self._kv_cache_samples)
             spilled: Optional[bool] = max_kv >= 1.0
+        elif self._vram_samples and self._gpu_max_vram_mb is not None:
+            spilled = max(self._vram_samples) > self._gpu_max_vram_mb
         else:
             spilled = None
 
@@ -189,6 +254,9 @@ class LlamaCppMonitor:
             avg_sys = None
             max_sys = None
 
+        avg_gen, median_gen, max_gen = _speed_stats(self._gen_toks_samples)
+        avg_prompt, median_prompt, max_prompt = _speed_stats(self._prompt_toks_samples)
+
         return GPUStats(
             gpu_name=self._gpu_name,
             gpu_max_vram_mb=self._gpu_max_vram_mb,
@@ -197,4 +265,10 @@ class LlamaCppMonitor:
             spilled_to_ram=spilled,
             avg_sys_ram_mb=avg_sys,
             max_sys_ram_mb=max_sys,
+            avg_gen_toks_per_sec=avg_gen,
+            median_gen_toks_per_sec=median_gen,
+            max_gen_toks_per_sec=max_gen,
+            avg_prompt_toks_per_sec=avg_prompt,
+            median_prompt_toks_per_sec=median_prompt,
+            max_prompt_toks_per_sec=max_prompt,
         )

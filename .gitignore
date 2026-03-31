@@ -210,3 +210,6 @@ __marimo__/
 results/
 *.csv
 .gpu_provider
+
+# Claude superpowers
+docs/superpowers/

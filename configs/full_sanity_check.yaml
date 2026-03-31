@@ -1,0 +1,35 @@
+# Run a quick, small model to test things out
+
+model:
+  api_base: "http://localhost:8080/v1"
+  name: "Qwen3.5-9B-Q4_K_M.gguf"
+  context_window: 32768
+
+# Optional: if present, sudoku-bench starts the server before running and
+# shuts it down after (including on Ctrl-C or errors).
+# Remove this section if you prefer to manage the server yourself.
+serve:
+  # llama-server is installed by: bash setup.sh --llamacpp
+  # Add --n-gpu-layers 99 to offload all layers to GPU
+  command: [
+    "llama-server",
+    "--hf-repo", "unsloth/Qwen3.5-9B-GGUF",
+    "--hf-file", "Qwen3.5-9B-Q4_K_M.gguf",
+    "--port", "8080",
+    "--ctx-size", "32768",
+    "--metrics"
+  ]
+  startup_timeout: 120  # seconds to wait for server to be ready
+
+puzzles:
+  - box_rows: 2
+    box_cols: 2
+    diffs: [0.25, 0.5, 0.75]
+    tests_per_diff: 3
+
+benchmark:
+  gpu_poll_interval: 1.0          # seconds between metric polls
+  results_file: "results/benchmark.csv"
+  puzzle_bank_file: "puzzles/puzzles.json"
+  context_buffer_tokens: 500      # reserve this many tokens before context is "full"
+  max_turns_per_puzzle: 200       # hard cap on turns per puzzle (safety net)
