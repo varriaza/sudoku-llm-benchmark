@@ -17,6 +17,12 @@ class GPUStats:
     spilled_to_ram: Optional[bool]
     avg_sys_ram_mb: Optional[float]
     max_sys_ram_mb: Optional[int]
+    avg_gen_toks_per_sec: Optional[float] = None
+    median_gen_toks_per_sec: Optional[float] = None
+    max_gen_toks_per_sec: Optional[float] = None
+    avg_prompt_toks_per_sec: Optional[float] = None
+    median_prompt_toks_per_sec: Optional[float] = None
+    max_prompt_toks_per_sec: Optional[float] = None
 
 
 class GPUMonitor:
@@ -67,21 +73,23 @@ class GPUMonitor:
         except Exception:
             return None
 
+    def _sample(self) -> None:
+        if self._nvidia_available:
+            data = self._query_nvidia()
+            if data:
+                used_mb, name, total_mb = data
+                if self._gpu_name is None:
+                    self._gpu_name = name
+                    self._gpu_max_vram_mb = total_mb
+                self._vram_samples.append(used_mb)
+
+        # Always sample system RAM
+        ram_mb = int(psutil.virtual_memory().used / 1024 / 1024)
+        self._sys_ram_samples.append(ram_mb)
+
     def _poll_loop(self) -> None:
         while not self._stop_event.is_set():
-            if self._nvidia_available:
-                data = self._query_nvidia()
-                if data:
-                    used_mb, name, total_mb = data
-                    if self._gpu_name is None:
-                        self._gpu_name = name
-                        self._gpu_max_vram_mb = total_mb
-                    self._vram_samples.append(used_mb)
-
-            # Always sample system RAM
-            ram_mb = int(psutil.virtual_memory().used / 1024 / 1024)
-            self._sys_ram_samples.append(ram_mb)
-
+            self._sample()
             self._stop_event.wait(timeout=self.poll_interval)
 
     def start(self) -> None:

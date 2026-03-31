@@ -1,6 +1,7 @@
 from __future__ import annotations
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -106,6 +107,8 @@ def run_puzzle(
     Run one puzzle to completion (or context exhaustion).
     Returns a dict of per-puzzle stats (not including model/GPU info).
     """
+    run_started_at = datetime.now().astimezone().isoformat(timespec="seconds")
+
     original_board = _record_to_board(record)
     size = original_board.size
     solution = record.solution
@@ -125,8 +128,10 @@ def run_puzzle(
 
     solved = False
     total_turns = 0
-    total_tokens = 0
-    context_tokens_used = 0
+    num_thinking_tokens = 0
+    num_output_tokens = 0
+    num_input_tokens = 0
+    last_context_tokens = 0
     malformed_submissions = 0
     best_pct = 0.0
     final_pct = 0.0
@@ -151,8 +156,10 @@ def run_puzzle(
         else:
             reasoning = 0
 
-        total_tokens += completion_tokens + reasoning
-        context_tokens_used = prompt_tokens + completion_tokens + reasoning
+        num_thinking_tokens += reasoning
+        num_output_tokens += completion_tokens - reasoning
+        num_input_tokens = prompt_tokens
+        last_context_tokens = prompt_tokens + completion_tokens + reasoning
 
         assistant_text = response.choices[0].message.content or ""
         messages.append({"role": "assistant", "content": assistant_text})
@@ -165,7 +172,7 @@ def run_puzzle(
             feedback_text = MALFORMED_RESPONSE.format(example=format_board(original_board))
             messages.append({"role": "user", "content": feedback_text})
             # Check context before looping
-            if context_window and context_tokens_used + context_buffer >= context_window:
+            if context_window and last_context_tokens + context_buffer >= context_window:
                 break
             if context_window is None and total_turns + malformed_submissions >= max_turns:
                 break
@@ -199,14 +206,17 @@ def run_puzzle(
         messages.append({"role": "user", "content": feedback_text})
 
         # Check context window
-        if context_window and context_tokens_used + context_buffer >= context_window:
+        if context_window and last_context_tokens + context_buffer >= context_window:
             break
         if context_window is None and total_turns + malformed_submissions >= max_turns:
             break
 
+    run_finished_at = datetime.now().astimezone().isoformat(timespec="seconds")
     total_seconds = round(time.time() - start_time, 2)
+    total_response_tokens = num_thinking_tokens + num_output_tokens
+    total_tokens_used = num_input_tokens + total_response_tokens
     context_pct = (
-        round(context_tokens_used / context_window * 100, 2)
+        round(num_input_tokens / context_window * 100, 2)
         if context_window
         else 0.0
     )
@@ -217,10 +227,15 @@ def run_puzzle(
         "final_pct_correct": final_pct,
         "best_num_errors": best_errors if best_errors < 9999 else 0,
         "final_num_errors": final_errors,
-        "total_tokens": total_tokens,
-        "context_tokens_used": context_tokens_used,
+        "num_input_tokens": num_input_tokens,
+        "num_thinking_tokens": num_thinking_tokens,
+        "num_output_tokens": num_output_tokens,
+        "total_response_tokens": total_response_tokens,
+        "total_tokens_used": total_tokens_used,
         "context_pct_used": context_pct,
         "total_turns": total_turns,
+        "run_started_at": run_started_at,
+        "run_finished_at": run_finished_at,
         "total_seconds": total_seconds,
         "malformed_submissions": malformed_submissions,
     }
@@ -348,10 +363,21 @@ def _run_benchmark(config, config_path: Path) -> None:
             final_pct_correct=stats["final_pct_correct"],
             best_num_errors=stats["best_num_errors"],
             final_num_errors=stats["final_num_errors"],
-            total_tokens=stats["total_tokens"],
-            context_tokens_used=stats["context_tokens_used"],
+            num_input_tokens=stats["num_input_tokens"],
+            num_thinking_tokens=stats["num_thinking_tokens"],
+            num_output_tokens=stats["num_output_tokens"],
+            total_response_tokens=stats["total_response_tokens"],
+            total_tokens_used=stats["total_tokens_used"],
             context_pct_used=stats["context_pct_used"],
+            avg_gen_toks_per_sec=gpu_stats.avg_gen_toks_per_sec,
+            median_gen_toks_per_sec=gpu_stats.median_gen_toks_per_sec,
+            max_gen_toks_per_sec=gpu_stats.max_gen_toks_per_sec,
+            avg_prompt_toks_per_sec=gpu_stats.avg_prompt_toks_per_sec,
+            median_prompt_toks_per_sec=gpu_stats.median_prompt_toks_per_sec,
+            max_prompt_toks_per_sec=gpu_stats.max_prompt_toks_per_sec,
             total_turns=stats["total_turns"],
+            run_started_at=stats["run_started_at"],
+            run_finished_at=stats["run_finished_at"],
             total_seconds=stats["total_seconds"],
             avg_vram_mb=gpu_stats.avg_vram_mb,
             max_vram_mb=gpu_stats.max_vram_mb,

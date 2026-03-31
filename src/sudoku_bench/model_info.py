@@ -51,8 +51,8 @@ def detect_model_info(api_base: str, name_override: Optional[str] = None) -> Mod
     # llama-server exposes GET /props with {"n_ctx": <int>, ...}
     # This check must come before vLLM because llama-server also serves /v1/models.
     props = _get_json(f"{root}/props")
-    if props is not None and "n_ctx" in props:
-        context_window = int(props["n_ctx"])
+    if props is not None:
+        context_window = int(props["n_ctx"]) if "n_ctx" in props else None
         # Get model name from /v1/models if no override provided
         if name_override:
             model_name = name_override

@@ -1,7 +1,7 @@
 """Tests for the vLLM Prometheus metrics monitor."""
 from __future__ import annotations
 
-from backends.vllm.monitor import VLLMMonitor, _metrics_url, _parse_gauge
+from backends.vllm.monitor import VLLMMonitor, _metrics_url, _parse_gauge, _speed_stats
 
 # ── _metrics_url ──────────────────────────────────────────────────────────────
 
@@ -143,3 +143,94 @@ def test_stop_averages_multiple_samples():
     stats = monitor._compute_stats()
 
     assert stats.avg_vram_mb is None  # raw VRAM not available from /metrics
+
+
+# ── _speed_stats ──────────────────────────────────────────────────────────────
+
+def test_speed_stats_empty_returns_none_triple():
+    assert _speed_stats([]) == (None, None, None)
+
+
+def test_speed_stats_single_value():
+    assert _speed_stats([42.0]) == (42.0, 42.0, 42.0)
+
+
+def test_speed_stats_multiple_values():
+    avg, median, maximum = _speed_stats([10.0, 20.0, 30.0])
+    assert avg == 20.0
+    assert median == 20.0
+    assert maximum == 30.0
+
+
+def test_speed_stats_rounds_to_two_dp():
+    avg, median, maximum = _speed_stats([10.0, 20.0, 21.0])
+    assert avg == round((10 + 20 + 21) / 3, 2)
+
+
+# ── VLLMMonitor speed sampling ────────────────────────────────────────────────
+
+SAMPLE_METRICS_WITH_SPEED = SAMPLE_METRICS + """\
+# HELP vllm:avg_generation_throughput_toks_per_s Rolling avg generation throughput.
+# TYPE vllm:avg_generation_throughput_toks_per_s gauge
+vllm:avg_generation_throughput_toks_per_s{model_name="meta-llama/Llama-3.1-8B-Instruct"} 45.5
+# HELP vllm:avg_prompt_throughput_toks_per_s Rolling avg prompt throughput.
+# TYPE vllm:avg_prompt_throughput_toks_per_s gauge
+vllm:avg_prompt_throughput_toks_per_s{model_name="meta-llama/Llama-3.1-8B-Instruct"} 1200.0
+"""
+
+
+def test_speed_metrics_parsed_from_prometheus_text():
+    """_parse_gauge correctly extracts throughput metrics from vLLM metrics text."""
+    assert _parse_gauge(SAMPLE_METRICS_WITH_SPEED, "vllm:avg_generation_throughput_toks_per_s") == 45.5
+    assert _parse_gauge(SAMPLE_METRICS_WITH_SPEED, "vllm:avg_prompt_throughput_toks_per_s") == 1200.0
+
+
+def test_speed_fields_populated_in_compute_stats():
+    monitor = VLLMMonitor("http://localhost:8000/v1", poll_interval=0.0)
+    monitor._gen_toks_samples = [45.5]
+    monitor._prompt_toks_samples = [1200.0]
+    monitor._gpu_cache_samples = []
+    monitor._cpu_cache_samples = []
+    monitor._sys_ram_samples = [1024]
+    stats = monitor._compute_stats()
+
+    assert stats.avg_gen_toks_per_sec == 45.5
+    assert stats.median_gen_toks_per_sec == 45.5
+    assert stats.max_gen_toks_per_sec == 45.5
+    assert stats.avg_prompt_toks_per_sec == 1200.0
+    assert stats.median_prompt_toks_per_sec == 1200.0
+    assert stats.max_prompt_toks_per_sec == 1200.0
+
+
+def test_speed_fields_none_when_no_samples():
+    monitor = VLLMMonitor("http://localhost:8000/v1", poll_interval=0.0)
+    monitor._gen_toks_samples = []
+    monitor._prompt_toks_samples = []
+    monitor._gpu_cache_samples = []
+    monitor._cpu_cache_samples = []
+    monitor._sys_ram_samples = [1024]
+    stats = monitor._compute_stats()
+
+    assert stats.avg_gen_toks_per_sec is None
+    assert stats.median_gen_toks_per_sec is None
+    assert stats.max_gen_toks_per_sec is None
+    assert stats.avg_prompt_toks_per_sec is None
+    assert stats.median_prompt_toks_per_sec is None
+    assert stats.max_prompt_toks_per_sec is None
+
+
+def test_speed_stats_avg_median_max_across_samples():
+    monitor = VLLMMonitor("http://localhost:8000/v1", poll_interval=0.0)
+    monitor._gen_toks_samples = [30.0, 40.0, 50.0]
+    monitor._prompt_toks_samples = [1000.0, 1100.0, 1200.0]
+    monitor._gpu_cache_samples = []
+    monitor._cpu_cache_samples = []
+    monitor._sys_ram_samples = [1024]
+    stats = monitor._compute_stats()
+
+    assert stats.avg_gen_toks_per_sec == 40.0
+    assert stats.median_gen_toks_per_sec == 40.0
+    assert stats.max_gen_toks_per_sec == 50.0
+    assert stats.avg_prompt_toks_per_sec == 1100.0
+    assert stats.median_prompt_toks_per_sec == 1100.0
+    assert stats.max_prompt_toks_per_sec == 1200.0

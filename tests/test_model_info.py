@@ -47,6 +47,20 @@ def test_llamacpp_name_override():
     assert info.context_window == 8192
 
 
+def test_llamacpp_detected_when_props_lacks_n_ctx():
+    """/props present but without n_ctx still detects as llamacpp, context_window=None."""
+    responses = {
+        "http://localhost:8080/props": {"total_slots": 4, "chat_template": "qwen"},
+        "http://localhost:8080/v1/models": {"data": [{"id": "my-model.gguf"}]},
+    }
+    with patch("sudoku_bench.model_info._get_json", side_effect=_mock_get_json(responses)):
+        info = detect_model_info("http://localhost:8080/v1")
+
+    assert info.backend_type == "llamacpp"
+    assert info.context_window is None
+    assert info.name == "my-model.gguf"
+
+
 def test_llamacpp_props_absent_falls_through_to_vllm():
     responses = {
         "http://localhost:8000/v1/models": {"data": [{"id": "meta-llama/Llama-3-8B"}]},
