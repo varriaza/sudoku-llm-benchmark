@@ -1,4 +1,4 @@
-# TLDR — sudoku-llm-benchmark
+# CLAUDE.md — sudoku-llm-benchmark
 
 A tool that benchmarks LLMs on Sudoku puzzles and records 41 metrics per run to a CSV.
 
@@ -8,7 +8,7 @@ A tool that benchmarks LLMs on Sudoku puzzles and records 41 metrics per run to 
 
 ```
 sudoku-llm-benchmark/
-├── TLDR.md                        ← you are here; update after making changes
+├── CLAUDE.md                      ← you are here; update after making changes
 ├── README.md                      ← full setup/usage docs
 ├── results/COLUMNS.md             ← reference for all 41 CSV output columns
 ├── configs/
