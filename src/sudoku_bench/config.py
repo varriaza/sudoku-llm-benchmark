@@ -28,6 +28,7 @@ class BenchmarkConfig:
     puzzle_bank_file: str = "puzzles/puzzles.json"
     context_buffer_tokens: int = 500
     max_turns_per_puzzle: int = 200
+    save_llm_output: bool = False
 
 
 @dataclass
