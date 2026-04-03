@@ -4,6 +4,14 @@ A tool that benchmarks LLMs on Sudoku puzzles and records 41 metrics per run to 
 
 ---
 
+# VERY IMPORANT: After Making Changes — Update This File (CLAUDE.md)
+
+If you add files, change the workflow, rename columns, or add new config options, update the relevant section above so the next agent starts with accurate context.
+
+---
+
+# Key Information
+
 ## Key Files
 
 ```
@@ -42,7 +50,7 @@ uv run sudoku-bench configs/simple_sanity_check.yaml
 uv run sudoku-bench configs/full_sanity_check.yaml
 ```
 
-The `serve:` block in these configs auto-starts/stops a llama-server. Remove it if you manage the server yourself.
+The `serve:` block in these configs auto-starts/stops a llama-server.
 
 Results are written to `results/simple_sanity_benchmark.csv` (or whichever `results_file` is set in the config).
 
@@ -127,6 +135,4 @@ If your server isn't already running, add a `serve:` block (see `configs/example
 
 ---
 
-## After Making Changes — Update This File
 
-If you add files, change the workflow, rename columns, or add new config options, update the relevant section above so the next agent starts with accurate context.
