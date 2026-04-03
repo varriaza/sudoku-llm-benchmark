@@ -118,6 +118,20 @@ model:
   name: "my-model-name"
   context_window: 32768
 
+# Technically not required but you should include this unless told otherwise.
+serve:
+  # llama-server is installed by: bash setup.sh --llamacpp
+  # Add --n-gpu-layers 99 to offload all layers to GPU
+  command: [
+    "llama-server",
+    "--hf-repo", "unsloth/Qwen3.5-9B-GGUF",
+    "--hf-file", "Qwen3.5-9B-Q4_K_M.gguf",
+    "--port", "8080",
+    "--ctx-size", "32768",
+    "--metrics"
+  ]
+  startup_timeout: 120  # seconds to wait for server to be ready
+
 puzzles:
   - box_rows: 2
     box_cols: 2
@@ -130,8 +144,6 @@ benchmark:
   context_buffer_tokens: 500
   max_turns_per_puzzle: 200
 ```
-
-If your server isn't already running, add a `serve:` block (see `configs/example.yaml`).
 
 ---
 
