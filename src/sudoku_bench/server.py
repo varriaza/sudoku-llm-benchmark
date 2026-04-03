@@ -42,7 +42,11 @@ def start_server(
         RuntimeError: If the process exits before the API becomes ready.
         TimeoutError: If the API is not ready within startup_timeout seconds.
     """
-    proc = subprocess.Popen(command)
+    proc = subprocess.Popen(
+        command,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
 
     deadline = time.time() + startup_timeout
     while time.time() < deadline:
