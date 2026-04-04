@@ -186,7 +186,14 @@ def run_puzzle(
         num_input_tokens = prompt_tokens
         last_context_tokens = prompt_tokens + completion_tokens + reasoning
 
-        assistant_text = response.choices[0].message.content or ""
+        msg = response.choices[0].message
+        visible_text = msg.content or ""
+        # Some backends (e.g. llama.cpp with Qwen3) return thinking separately
+        reasoning_text = getattr(msg, "reasoning_content", None) or ""
+        if reasoning_text:
+            assistant_text = f"<think>{reasoning_text}</think>{visible_text}"
+        else:
+            assistant_text = visible_text
 
         if llm_output_file is not None:
             _write_llm_exchange(

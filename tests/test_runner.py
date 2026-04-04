@@ -34,7 +34,7 @@ def _make_record() -> PuzzleRecord:
     )
 
 
-def _make_client(response_text: str) -> MagicMock:
+def _make_client(response_text: str, reasoning_content: str = "") -> MagicMock:
     """Build a mock OpenAI client that always returns the given text."""
     usage = MagicMock()
     usage.prompt_tokens = 100
@@ -43,6 +43,7 @@ def _make_client(response_text: str) -> MagicMock:
 
     choice = MagicMock()
     choice.message.content = response_text
+    choice.message.reasoning_content = reasoning_content
 
     completion = MagicMock()
     completion.usage = usage
@@ -312,3 +313,68 @@ def test_run_puzzle_file_includes_input_messages():
     assert "[SYSTEM]" in out
     assert "[USER]" in out
     assert "Here is your puzzle" in out
+
+
+def test_run_puzzle_reasoning_content_included_in_log():
+    """When reasoning_content is returned separately, it appears in the log wrapped in <think> tags."""
+    client = _make_client("no board here", reasoning_content="my secret thoughts")
+    record = _make_record()
+    f = io.StringIO()
+
+    run_puzzle(
+        record=record,
+        client=client,
+        model_name="test-model",
+        context_window=None,
+        context_buffer=0,
+        max_turns=1,
+        llm_output_file=f,
+    )
+
+    out = f.getvalue()
+    assert "<think>my secret thoughts</think>" in out
+    assert "no board here" in out
+
+
+def test_run_puzzle_reasoning_content_included_in_conversation_history():
+    """reasoning_content is reconstructed into assistant_text so the conversation history is complete."""
+    client = _make_client("", reasoning_content="only thinking, no visible output")
+    record = _make_record()
+
+    # max_turns=2 with context_window=None: exits after 2 malformed submissions
+    run_puzzle(
+        record=record,
+        client=client,
+        model_name="test-model",
+        context_window=None,
+        context_buffer=0,
+        max_turns=2,
+    )
+
+    calls = client.chat.completions.create.call_args_list
+    assert len(calls) == 2
+    # The messages list is mutated in place; check it contains assistant turns with reconstructed thinking
+    final_messages = calls[0].kwargs["messages"]
+    assistant_msgs = [m for m in final_messages if m["role"] == "assistant"]
+    assert all("<think>only thinking, no visible output</think>" in m["content"] for m in assistant_msgs)
+
+
+def test_run_puzzle_no_reasoning_content_unchanged():
+    """When reasoning_content is absent, assistant_text equals message.content as before."""
+    client = _make_client("plain response")
+    record = _make_record()
+    f = io.StringIO()
+
+    run_puzzle(
+        record=record,
+        client=client,
+        model_name="test-model",
+        context_window=None,
+        context_buffer=0,
+        max_turns=1,
+        llm_output_file=f,
+    )
+
+    out = f.getvalue()
+    assert "plain response" in out
+    assert "<think>" not in out
