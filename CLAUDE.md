@@ -130,7 +130,8 @@ serve:
     "--hf-file", "Qwen3.5-9B-Q4_K_M.gguf",
     "--port", "8080",
     "--ctx-size", "32768",
-    "--metrics"
+    "--metrics",
+    "--seed", "42"   # fix RNG seed for reproducibility (default is random)
   ]
   startup_timeout: 120  # seconds to wait for server to be ready
 
