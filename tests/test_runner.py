@@ -3,7 +3,7 @@ from __future__ import annotations
 import io
 from unittest.mock import MagicMock, patch
 
-from sudoku_bench.runner import run_puzzle, main, _filter_puzzles, _write_llm_exchange
+from sudoku_bench.runner import run_puzzle, main, _filter_puzzles, _write_llm_exchange, _infer_model_path_from_serve
 from sudoku_bench.puzzle_bank import PuzzleRecord
 from sudoku_bench.config import PuzzleSetConfig
 
@@ -357,6 +357,53 @@ def test_run_puzzle_reasoning_content_included_in_conversation_history():
     final_messages = calls[0].kwargs["messages"]
     assistant_msgs = [m for m in final_messages if m["role"] == "assistant"]
     assert all("<think>only thinking, no visible output</think>" in m["content"] for m in assistant_msgs)
+
+
+# ── _infer_model_path_from_serve ─────────────────────────────────────────────
+
+def test_infer_model_path_direct_model_flag():
+    """--model <path> is returned directly without filesystem access."""
+    cmd = ["llama-server", "--model", "/home/user/models/my.gguf", "--port", "8080"]
+    assert _infer_model_path_from_serve(cmd) == "/home/user/models/my.gguf"
+
+
+def test_infer_model_path_no_flags_returns_none():
+    """Command with no --model or --hf-* flags returns None."""
+    cmd = ["llama-server", "--port", "8080"]
+    assert _infer_model_path_from_serve(cmd) is None
+
+
+def test_infer_model_path_hf_flags_found_in_cache(tmp_path):
+    """--hf-repo and --hf-file resolve to the cached GGUF file."""
+    # Build a fake HF cache structure
+    snapshot_dir = tmp_path / "models--unsloth--Qwen3.5-9B-GGUF" / "snapshots" / "abc123"
+    snapshot_dir.mkdir(parents=True)
+    model_file = snapshot_dir / "Qwen3.5-9B-Q4_K_M.gguf"
+    model_file.write_bytes(b"fake")
+
+    cmd = [
+        "llama-server",
+        "--hf-repo", "unsloth/Qwen3.5-9B-GGUF",
+        "--hf-file", "Qwen3.5-9B-Q4_K_M.gguf",
+        "--port", "8080",
+    ]
+    with patch.dict("os.environ", {"HUGGINGFACE_HUB_CACHE": str(tmp_path)}):
+        result = _infer_model_path_from_serve(cmd)
+
+    assert result == str(model_file)
+
+
+def test_infer_model_path_hf_flags_cache_miss_returns_none(tmp_path):
+    """--hf-repo and --hf-file with no matching cache file returns None."""
+    cmd = [
+        "llama-server",
+        "--hf-repo", "unsloth/Qwen3.5-9B-GGUF",
+        "--hf-file", "Qwen3.5-9B-Q4_K_M.gguf",
+    ]
+    with patch.dict("os.environ", {"HUGGINGFACE_HUB_CACHE": str(tmp_path)}):
+        result = _infer_model_path_from_serve(cmd)
+
+    assert result is None
 
 
 def test_run_puzzle_no_reasoning_content_unchanged():

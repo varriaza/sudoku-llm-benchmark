@@ -1,5 +1,6 @@
 from __future__ import annotations
 import contextlib
+import os
 import sys
 import time
 from datetime import datetime
@@ -336,6 +337,51 @@ def _model_file_size_gb(model_path: Optional[str]) -> Optional[float]:
         return None
 
 
+def _infer_model_path_from_serve(command: list[str]) -> Optional[str]:
+    """Infer the model file path from a serve command.
+
+    Handles:
+    - ``--model <path>`` — returned directly.
+    - ``--hf-repo <org/repo> --hf-file <filename>`` — resolved via the
+      HuggingFace hub cache directory.
+    """
+    # Build a simple arg → value map for the flags we care about.
+    flags: dict[str, str] = {}
+    it = iter(command)
+    for token in it:
+        if token in ("--model", "--hf-repo", "--hf-file"):
+            try:
+                flags[token] = next(it)
+            except StopIteration:
+                pass
+
+    # Direct --model path
+    if "--model" in flags:
+        return flags["--model"]
+
+    # HuggingFace cache lookup
+    if "--hf-repo" in flags and "--hf-file" in flags:
+        hf_repo = flags["--hf-repo"]
+        hf_file = flags["--hf-file"]
+        hf_cache = Path(
+            os.environ.get(
+                "HUGGINGFACE_HUB_CACHE",
+                os.path.join(
+                    os.environ.get("HF_HOME", os.path.expanduser("~/.cache/huggingface")),
+                    "hub",
+                ),
+            )
+        )
+        # Repo dir uses double dashes: "org/repo" → "models--org--repo"
+        repo_dir = hf_cache / ("models--" + hf_repo.replace("/", "--"))
+        # Snapshots may be any commit hash; glob for the file under any of them.
+        matches = sorted(repo_dir.glob(f"snapshots/*/{hf_file}"))
+        if matches:
+            return str(matches[-1])  # most recently modified snapshot
+
+    return None
+
+
 def _run_benchmark(config, config_path: Path) -> None:
     print(f"Detecting model info from {config.model.api_base}...")
     model_info = detect_model_info(config.model.api_base, config.model.name)
@@ -354,7 +400,10 @@ def _run_benchmark(config, config_path: Path) -> None:
     print(f"  Backend: {model_info.backend_type}")
     print(f"  Context window: {context_window}")
 
-    model_file_size = _model_file_size_gb(config.model.model_path)
+    model_path = config.model.model_path
+    if model_path is None and config.serve is not None:
+        model_path = _infer_model_path_from_serve(config.serve.command)
+    model_file_size = _model_file_size_gb(model_path)
 
     bank_path = Path(config.benchmark.puzzle_bank_file)
     puzzles = load_bank(bank_path)
