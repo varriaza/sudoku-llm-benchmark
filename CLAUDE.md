@@ -52,7 +52,7 @@ uv run sudoku-bench configs/simple_sanity_check.yaml
 uv run sudoku-bench configs/full_sanity_check.yaml
 ```
 
-The `serve:` block in these configs auto-starts/stops a llama-server.
+Both configs include a `serve:` block that **automatically downloads, starts, and stops llama-server** — no manual server setup needed. The model is downloaded from HuggingFace on first run.
 
 Results are written to `results/simple_sanity_benchmark.csv` (or whichever `results_file` is set in the config).
 
