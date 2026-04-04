@@ -207,8 +207,8 @@ Here is my completed board:
     assert board.cells[2] == [3, 2, 4, 1]
 
 
-def test_parse_falls_back_to_think_block_if_no_board_outside():
-    """If the only board is inside <think>, fall back and return it."""
+def test_parse_board_only_in_think_block_returns_none():
+    """A board that only appears inside <think> is not a submission."""
     text = """<think>
 2* 3* | 1* 4*
 4* 1* | 3* 2*
@@ -220,8 +220,7 @@ def test_parse_falls_back_to_think_block_if_no_board_outside():
 I have submitted my answer.
 """
     board = parse_board(text, box_rows=2, box_cols=2)
-    assert board is not None
-    assert board.cells_filled == 16
+    assert board is None
 
 
 def test_parse_star_prefix_numbers():

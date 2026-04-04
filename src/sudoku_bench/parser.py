@@ -119,13 +119,10 @@ def parse_board(text: str, box_rows: int, box_cols: int) -> Optional[Board]:
     Extract a Board from free-form LLM text.
     Returns None if no valid board of the expected size can be found.
 
-    Strips <think>...</think> blocks first so reasoning chains with partial
-    boards don't shadow the LLM's final answer.  Falls back to the full text
-    if no board is found after stripping.
+    <think>...</think> blocks are always stripped before parsing so that
+    partial or intermediate boards in the LLM's reasoning chain are ignored.
+    A board that appears only inside a think block is not considered a
+    submission.
     """
     stripped = _strip_think_blocks(text)
-    board = _parse_board_from_text(stripped, box_rows, box_cols)
-    if board is None and stripped != text:
-        # Fall back to full text (handles boards placed inside <think> blocks)
-        board = _parse_board_from_text(text, box_rows, box_cols)
-    return board
+    return _parse_board_from_text(stripped, box_rows, box_cols)
