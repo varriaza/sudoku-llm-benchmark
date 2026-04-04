@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from sudoku_bench.validator import Violation, ViolationType
 
 
@@ -22,7 +23,9 @@ def generate_feedback(
         elif v.type == ViolationType.BOX_DUPLICATE:
             if v.positions:
                 r, c = v.positions[0]
-                lines.append(f"Box containing R{r + 1}C{c + 1} has duplicate {v.value}s.")
+                lines.append(
+                    f"Box containing R{r + 1}C{c + 1} has duplicate {v.value}s."
+                )
             else:
                 lines.append(f"A box has duplicate {v.value}s.")
         elif v.type == ViolationType.MODIFIED_GIVEN:
@@ -42,7 +45,9 @@ def generate_feedback(
     if not violations and cells_filled == total_cells:
         return f"Correct! Puzzle complete. {fill_line}"
 
+    encourage = " Keep submitting as you make progress. Wrong answers are not penalized and partially completed submissions are expected."
+
     if violations:
-        return "\n".join(lines) + f"\n{fill_line}"
+        return "\n".join(lines) + f"\n{fill_line}{encourage}"
     else:
-        return f"No rule violations. {fill_line}"
+        return f"No rule violations. {fill_line}{encourage}"

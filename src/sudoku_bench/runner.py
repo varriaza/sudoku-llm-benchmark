@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import contextlib
 import os
 import sys
@@ -9,20 +10,19 @@ from typing import IO, Optional
 
 from openai import OpenAI
 
+from backends.llamacpp.monitor import LlamaCppMonitor
+from backends.vllm.monitor import VLLMMonitor
 from sudoku_bench.board import Board
 from sudoku_bench.config import load_config
 from sudoku_bench.feedback import generate_feedback
 from sudoku_bench.formatter import format_board
-from backends.vllm.monitor import VLLMMonitor
-from backends.llamacpp.monitor import LlamaCppMonitor
 from sudoku_bench.gpu_monitor import GPUMonitor
 from sudoku_bench.metrics import PuzzleMetrics, append_csv_row
 from sudoku_bench.model_info import detect_model_info
 from sudoku_bench.parser import parse_board
-from sudoku_bench.puzzle_bank import load_bank, PuzzleRecord
+from sudoku_bench.puzzle_bank import PuzzleRecord, load_bank
 from sudoku_bench.server import start_server, stop_server
 from sudoku_bench.validator import validate
-
 
 # ── System prompt template ────────────────────────────────────────────────────
 
@@ -37,10 +37,14 @@ Rules:
 - Cells marked with * are pre-filled givens and must not be changed.
 
 When you want to check your progress, submit your current grid in the same format shown \
-below. I will report any rule violations (duplicate numbers, modified given cells, \
+below. The computer will report back with any rule violations (duplicate numbers, modified given cells, \
 out-of-range values) and how many cells are filled.
 
 Submitting a fully correct, fully filled board will end the challenge.
+
+Important: Submit early and often! Do not wait until you are fully confident. \
+You have unlimited attempts, wrong answers are not penalized and partially completed submissions are expected. \
+If you are unsure, just submit your best guess and use the feedback to improve.
 
 Do not write code — reason through the puzzle logically.
 """
@@ -54,6 +58,7 @@ numbers, keep * on given cells):
 
 
 # ── Board helpers ─────────────────────────────────────────────────────────────
+
 
 def _filter_puzzles(puzzles: list[PuzzleRecord], config) -> list[PuzzleRecord]:
     """Return only puzzles matching the config's puzzle specs, capped at tests_per_diff."""
@@ -97,6 +102,7 @@ def _pct_correct(board: Board, solution: list[list[int]]) -> float:
 
 # ── Single puzzle run ─────────────────────────────────────────────────────────
 
+
 def _write_llm_exchange(
     f: IO[str],
     puzzle_id: str,
@@ -105,9 +111,9 @@ def _write_llm_exchange(
     response_text: str,
 ) -> None:
     """Append one LLM input/output exchange to the debug file."""
-    f.write(f"\n{'='*80}\n")
+    f.write(f"\n{'=' * 80}\n")
     f.write(f"PUZZLE: {puzzle_id}  |  TURN: {turn}\n")
-    f.write(f"{'='*80}\n\n")
+    f.write(f"{'=' * 80}\n\n")
     f.write("--- INPUT MESSAGES ---\n\n")
     for msg in messages:
         role = msg["role"].upper()
@@ -212,12 +218,20 @@ def run_puzzle(
 
         if submitted is None:
             malformed_submissions += 1
-            feedback_text = MALFORMED_RESPONSE.format(example=format_board(original_board))
+            feedback_text = MALFORMED_RESPONSE.format(
+                example=format_board(original_board)
+            )
             messages.append({"role": "user", "content": feedback_text})
             # Check context before looping
-            if context_window and last_context_tokens + context_buffer >= context_window:
+            if (
+                context_window
+                and last_context_tokens + context_buffer >= context_window
+            ):
                 break
-            if context_window is None and total_turns + malformed_submissions >= max_turns:
+            if (
+                context_window is None
+                and total_turns + malformed_submissions >= max_turns
+            ):
                 break
             continue
 
@@ -259,9 +273,7 @@ def run_puzzle(
     total_response_tokens = num_thinking_tokens + num_output_tokens
     total_tokens_used = num_input_tokens + total_response_tokens
     context_pct = (
-        round(num_input_tokens / context_window * 100, 2)
-        if context_window
-        else 0.0
+        round(num_input_tokens / context_window * 100, 2) if context_window else 0.0
     )
 
     return {
@@ -286,6 +298,7 @@ def run_puzzle(
 
 # ── Main benchmark loop ───────────────────────────────────────────────────────
 
+
 def main() -> None:
     if len(sys.argv) < 2:
         print("Usage: sudoku-bench <config.yaml>")
@@ -303,8 +316,7 @@ def main() -> None:
         else:
             model_repo, model_tag = model_name, ""
         command = [
-            arg
-            .replace("{model}", model_name)
+            arg.replace("{model}", model_name)
             .replace("{model_repo}", model_repo)
             .replace("{model_tag}", model_tag)
             for arg in config.serve.command
@@ -446,7 +458,11 @@ def _run_benchmark(config, config_path: Path) -> None:
 
         monitor.start()
         try:
-            with (open(llm_output_path, "a", encoding="utf-8") if llm_output_path else contextlib.nullcontext()) as llm_file:
+            with (
+                open(llm_output_path, "a", encoding="utf-8")
+                if llm_output_path
+                else contextlib.nullcontext()
+            ) as llm_file:
                 stats = run_puzzle(
                     record=record,
                     client=client,
