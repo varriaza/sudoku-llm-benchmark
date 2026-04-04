@@ -35,7 +35,9 @@ sudoku-llm-benchmark/
 │   ├── validator.py               ← validates Sudoku rules, returns Violation list
 │   ├── formatter.py               ← formats Board into text for LLM prompt
 │   └── feedback.py                ← generates feedback messages from violations
-└── tests/                         ← pytest test suite (mirrors src/ structure)
+├── tests/
+│   ├── test_config.py             ← BenchmarkConfig defaults and YAML parsing
+│   └── ...                        ← other tests mirror src/ structure
 ```
 
 ---
@@ -143,6 +145,7 @@ benchmark:
   puzzle_bank_file: "puzzles/puzzles.json"
   context_buffer_tokens: 500
   max_turns_per_puzzle: 200
+  save_llm_output: false   # set true to write full LLM I/O to results/llm_output_<timestamp>.txt
 ```
 
 ---
