@@ -35,7 +35,9 @@ sudoku-llm-benchmark/
 │   ├── validator.py               ← validates Sudoku rules, returns Violation list
 │   ├── formatter.py               ← formats Board into text for LLM prompt
 │   └── feedback.py                ← generates feedback messages from violations
-└── tests/                         ← pytest test suite (mirrors src/ structure)
+├── tests/
+│   ├── test_config.py             ← BenchmarkConfig defaults and YAML parsing
+│   └── ...                        ← other tests mirror src/ structure
 ```
 
 ---
@@ -50,7 +52,7 @@ uv run sudoku-bench configs/simple_sanity_check.yaml
 uv run sudoku-bench configs/full_sanity_check.yaml
 ```
 
-The `serve:` block in these configs auto-starts/stops a llama-server.
+Both configs include a `serve:` block that **automatically downloads, starts, and stops llama-server** — no manual server setup needed. The model is downloaded from HuggingFace on first run.
 
 Results are written to `results/simple_sanity_benchmark.csv` (or whichever `results_file` is set in the config).
 
@@ -143,6 +145,7 @@ benchmark:
   puzzle_bank_file: "puzzles/puzzles.json"
   context_buffer_tokens: 500
   max_turns_per_puzzle: 200
+  save_llm_output: false   # set true to write full LLM I/O to results/llm_output_<timestamp>.txt
 ```
 
 ---

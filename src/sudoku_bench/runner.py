@@ -1,9 +1,10 @@
 from __future__ import annotations
+import contextlib
 import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import IO, Optional
 
 from openai import OpenAI
 
@@ -95,6 +96,27 @@ def _pct_correct(board: Board, solution: list[list[int]]) -> float:
 
 # ── Single puzzle run ─────────────────────────────────────────────────────────
 
+def _write_llm_exchange(
+    f: IO[str],
+    puzzle_id: str,
+    turn: int,
+    messages: list[dict],
+    response_text: str,
+) -> None:
+    """Append one LLM input/output exchange to the debug file."""
+    f.write(f"\n{'='*80}\n")
+    f.write(f"PUZZLE: {puzzle_id}  |  TURN: {turn}\n")
+    f.write(f"{'='*80}\n\n")
+    f.write("--- INPUT MESSAGES ---\n\n")
+    for msg in messages:
+        role = msg["role"].upper()
+        f.write(f"[{role}]\n{msg['content']}\n\n")
+    f.write("--- LLM RESPONSE ---\n\n")
+    f.write(response_text)
+    f.write("\n\n")
+    f.flush()
+
+
 def run_puzzle(
     record: PuzzleRecord,
     client: OpenAI,
@@ -103,6 +125,7 @@ def run_puzzle(
     context_buffer: int,
     max_turns: int = 50,
     temperature: Optional[float] = None,
+    llm_output_file: Optional[IO[str]] = None,
 ) -> dict:
     """
     Run one puzzle to completion (or context exhaustion).
@@ -163,7 +186,24 @@ def run_puzzle(
         num_input_tokens = prompt_tokens
         last_context_tokens = prompt_tokens + completion_tokens + reasoning
 
-        assistant_text = response.choices[0].message.content or ""
+        msg = response.choices[0].message
+        visible_text = msg.content or ""
+        # Some backends (e.g. llama.cpp with Qwen3) return thinking separately
+        reasoning_text = getattr(msg, "reasoning_content", None) or ""
+        if reasoning_text:
+            assistant_text = f"<think>{reasoning_text}</think>{visible_text}"
+        else:
+            assistant_text = visible_text
+
+        if llm_output_file is not None:
+            _write_llm_exchange(
+                llm_output_file,
+                puzzle_id=record.id,
+                turn=total_turns + malformed_submissions + 1,
+                messages=messages,
+                response_text=assistant_text,
+            )
+
         messages.append({"role": "assistant", "content": assistant_text})
 
         # Try to parse a board from the response
@@ -342,6 +382,13 @@ def _run_benchmark(config, config_path: Path) -> None:
         monitor = GPUMonitor(poll_interval=config.benchmark.gpu_poll_interval)
         print("  Monitor: nvidia-smi")
 
+    llm_output_path: Optional[Path] = None
+    if config.benchmark.save_llm_output:
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        llm_output_path = results_path.parent / f"llm_output_{ts}.txt"
+        llm_output_path.parent.mkdir(parents=True, exist_ok=True)
+        print(f"  LLM output: {llm_output_path}")
+
     print(f"\nRunning {len(puzzles)} puzzles...")
 
     for i, record in enumerate(puzzles, 1):
@@ -350,15 +397,17 @@ def _run_benchmark(config, config_path: Path) -> None:
 
         monitor.start()
         try:
-            stats = run_puzzle(
-                record=record,
-                client=client,
-                model_name=model_info.name,
-                context_window=context_window,
-                context_buffer=config.benchmark.context_buffer_tokens,
-                max_turns=config.benchmark.max_turns_per_puzzle,
-                temperature=0.1,
-            )
+            with (open(llm_output_path, "a", encoding="utf-8") if llm_output_path else contextlib.nullcontext()) as llm_file:
+                stats = run_puzzle(
+                    record=record,
+                    client=client,
+                    model_name=model_info.name,
+                    context_window=context_window,
+                    context_buffer=config.benchmark.context_buffer_tokens,
+                    max_turns=config.benchmark.max_turns_per_puzzle,
+                    temperature=0.1,
+                    llm_output_file=llm_file if llm_output_path else None,
+                )
         finally:
             gpu_stats = monitor.stop()
 

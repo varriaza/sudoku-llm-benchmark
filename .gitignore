@@ -208,6 +208,7 @@ __marimo__/
 
 # Project-specific
 results/*.csv
+results/llm_output_*.txt
 .gpu_provider
 
 # Claude superpowers
