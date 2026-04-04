@@ -136,3 +136,104 @@ def test_parse_16x16_two_digit_values():
     board = parse_board(text, box_rows=4, box_cols=4)
     assert board is not None
     assert board.cells[0][0] == 16
+
+
+def test_parse_all_cells_starred():
+    """LLM marks all cells with * — should still parse all 16 values."""
+    text = """
+2* 3* | 1* 4*
+4* 1* | 3* 2*
+------ + ------
+3* 2* | 4* 1*
+1* 4* | 2* 3*
+"""
+    board = parse_board(text, box_rows=2, box_cols=2)
+    assert board is not None
+    assert board.cells_filled == 16
+    assert board.cells[1] == [4, 1, 3, 2]
+    assert board.cells[2] == [3, 2, 4, 1]
+
+
+def test_parse_in_code_fence():
+    """LLM wraps board in a markdown code fence."""
+    text = """
+```
+2* 3* | 1* 4*
+4  1  | 3* 2*
+------ + ------
+3  2  | 4* 1
+1* 4* | 2* 3*
+```
+
+This fills:
+- R2C1: 4
+- R2C2: 1
+- R3C1: 3
+- R3C4: 1
+"""
+    board = parse_board(text, box_rows=2, box_cols=2)
+    assert board is not None
+    assert board.cells_filled == 16
+    assert board.cells[1] == [4, 1, 3, 2]
+    assert board.cells[2] == [3, 2, 4, 1]
+
+
+def test_parse_ignores_think_block_partial_board():
+    """Partial board inside <think> should not shadow the final complete board."""
+    text = """<think>
+Let me work through this step by step.
+
+2* 3* | 1* 4*
+4* .  | 3* 2*
+------ + ------
+.  2* | 4* .
+1* 4* | 2* 3*
+
+I still need to fill in R2C2, R3C1, R3C4...
+</think>
+
+Here is my completed board:
+
+2* 3* | 1* 4*
+4* 1* | 3* 2*
+------ + ------
+3* 2* | 4* 1*
+1* 4* | 2* 3*
+"""
+    board = parse_board(text, box_rows=2, box_cols=2)
+    assert board is not None
+    assert board.cells_filled == 16
+    assert board.cells[1] == [4, 1, 3, 2]
+    assert board.cells[2] == [3, 2, 4, 1]
+
+
+def test_parse_falls_back_to_think_block_if_no_board_outside():
+    """If the only board is inside <think>, fall back and return it."""
+    text = """<think>
+2* 3* | 1* 4*
+4* 1* | 3* 2*
+------ + ------
+3* 2* | 4* 1*
+1* 4* | 2* 3*
+</think>
+
+I have submitted my answer.
+"""
+    board = parse_board(text, box_rows=2, box_cols=2)
+    assert board is not None
+    assert board.cells_filled == 16
+
+
+def test_parse_star_prefix_numbers():
+    """Handle *4* or *4 tokens where * appears before the digit."""
+    text = """
+*2* *3* | *1* *4*
+*4* *1* | *3* *2*
+-------- + --------
+*3* *2* | *4* *1*
+*1* *4* | *2* *3*
+"""
+    board = parse_board(text, box_rows=2, box_cols=2)
+    assert board is not None
+    assert board.cells_filled == 16
+    assert board.cells[0] == [2, 3, 1, 4]
