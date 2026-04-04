@@ -33,3 +33,4 @@ benchmark:
   puzzle_bank_file: "puzzles/puzzles.json"
   context_buffer_tokens: 500      # reserve this many tokens before context is "full"
   max_turns_per_puzzle: 200       # hard cap on turns per puzzle (safety net)
+  save_llm_output: true
