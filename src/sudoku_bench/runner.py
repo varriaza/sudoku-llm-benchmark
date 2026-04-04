@@ -41,6 +41,10 @@ out-of-range values) and how many cells are filled.
 
 Submitting a fully correct, fully filled board will end the challenge.
 
+Important: Submit early and often — do not wait until you are fully confident. \
+You have multiple attempts, and wrong answers are not penalized. If you are unsure, \
+just submit your best guess and use the feedback to improve.
+
 Do not write code — reason through the puzzle logically.
 """
 

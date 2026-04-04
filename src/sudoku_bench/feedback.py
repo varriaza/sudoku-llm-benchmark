@@ -42,7 +42,9 @@ def generate_feedback(
     if not violations and cells_filled == total_cells:
         return f"Correct! Puzzle complete. {fill_line}"
 
+    encourage = " Keep submitting as you make progress — wrong answers are not penalized."
+
     if violations:
-        return "\n".join(lines) + f"\n{fill_line}"
+        return "\n".join(lines) + f"\n{fill_line}{encourage}"
     else:
-        return f"No rule violations. {fill_line}"
+        return f"No rule violations. {fill_line}{encourage}"
