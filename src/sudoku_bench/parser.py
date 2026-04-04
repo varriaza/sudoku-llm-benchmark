@@ -1,6 +1,12 @@
 from __future__ import annotations
+import re
 from typing import Optional
 from sudoku_bench.board import Board
+
+
+def _strip_think_blocks(text: str) -> str:
+    """Remove <think>...</think> blocks (including multiline) from text."""
+    return re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
 
 
 def _is_separator_line(line: str) -> bool:
@@ -17,6 +23,7 @@ def _parse_data_line(
     Returns None if any token is non-numeric (other than '.' for empty).
     If box_cols is given and the line contains '|' separators, each segment
     must have exactly box_cols cells.
+    Tokens may have '*' as prefix, suffix, or both (e.g. '2*', '*2', '*2*').
     """
     # Validate box column structure when | separators are present
     if box_cols is not None and "|" in line:
@@ -25,7 +32,7 @@ def _parse_data_line(
             # Parse segment tokens
             parsed_seg = []
             for token in seg.split():
-                raw = token.rstrip("*")
+                raw = token.strip("*")
                 if raw == "." or raw.isdigit():
                     parsed_seg.append(raw)
                 else:
@@ -39,8 +46,8 @@ def _parse_data_line(
     tokens = cleaned.split()
     result: list[tuple[Optional[int], bool]] = []
     for token in tokens:
-        is_given = token.endswith("*")
-        raw = token.rstrip("*")
+        is_given = token.startswith("*") or token.endswith("*")
+        raw = token.strip("*")
         if raw == ".":
             result.append((None, is_given))
         elif raw.isdigit():
@@ -50,11 +57,8 @@ def _parse_data_line(
     return result if result else None
 
 
-def parse_board(text: str, box_rows: int, box_cols: int) -> Optional[Board]:
-    """
-    Extract a Board from free-form LLM text.
-    Returns None if no valid board of the expected size can be found.
-    """
+def _parse_board_from_text(text: str, box_rows: int, box_cols: int) -> Optional[Board]:
+    """Core board extraction from a text string."""
     size = box_rows * box_cols
     lines = text.splitlines()
 
@@ -108,3 +112,17 @@ def parse_board(text: str, box_rows: int, box_cols: int) -> Optional[Board]:
         box_rows=box_rows,
         box_cols=box_cols,
     )
+
+
+def parse_board(text: str, box_rows: int, box_cols: int) -> Optional[Board]:
+    """
+    Extract a Board from free-form LLM text.
+    Returns None if no valid board of the expected size can be found.
+
+    <think>...</think> blocks are always stripped before parsing so that
+    partial or intermediate boards in the LLM's reasoning chain are ignored.
+    A board that appears only inside a think block is not considered a
+    submission.
+    """
+    stripped = _strip_think_blocks(text)
+    return _parse_board_from_text(stripped, box_rows, box_cols)

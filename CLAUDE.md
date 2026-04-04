@@ -31,7 +31,7 @@ sudoku-llm-benchmark/
 │   ├── config.py                  ← YAML config parsing (ModelConfig, BenchmarkConfig)
 │   ├── metrics.py                 ← PuzzleMetrics dataclass + CSV append logic
 │   ├── model_info.py              ← auto-detects model name/params/quant/backend
-│   ├── parser.py                  ← parses LLM text output into a Board
+│   ├── parser.py                  ← parses LLM text output into a Board; strips <think> blocks, handles *-prefixed tokens and code fences
 │   ├── validator.py               ← validates Sudoku rules, returns Violation list
 │   ├── formatter.py               ← formats Board into text for LLM prompt
 │   └── feedback.py                ← generates feedback messages from violations
