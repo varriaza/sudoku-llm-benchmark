@@ -17,41 +17,33 @@ def _is_separator_line(line: str) -> bool:
 
 def _parse_data_line(
     line: str, box_cols: Optional[int] = None
-) -> list[tuple[Optional[int], bool]] | None:
+) -> list[Optional[int]] | None:
     """
-    Parse one data row into a list of (value, is_given) pairs.
+    Parse one data row into a list of values (int or None for empty cells).
     Returns None if any token is non-numeric (other than '.' for empty).
     If box_cols is given and the line contains '|' separators, each segment
     must have exactly box_cols cells.
-    Tokens may have '*' as prefix, suffix, or both (e.g. '2*', '*2', '*2*').
     """
     # Validate box column structure when | separators are present
     if box_cols is not None and "|" in line:
         segments = line.split("|")
         for seg in segments:
-            # Parse segment tokens
-            parsed_seg = []
-            for token in seg.split():
-                raw = token.strip("*")
-                if raw == "." or raw.isdigit():
-                    parsed_seg.append(raw)
-                else:
-                    # Non-cell token, skip (shouldn't happen in valid lines)
-                    pass
+            parsed_seg = [
+                t for t in seg.split()
+                if t == "." or t.isdigit()
+            ]
             if parsed_seg and len(parsed_seg) != box_cols:
                 return None
 
     # Strip box-column separators
     cleaned = line.replace("|", " ")
     tokens = cleaned.split()
-    result: list[tuple[Optional[int], bool]] = []
+    result: list[Optional[int]] = []
     for token in tokens:
-        is_given = token.startswith("*") or token.endswith("*")
-        raw = token.strip("*")
-        if raw == ".":
-            result.append((None, is_given))
-        elif raw.isdigit():
-            result.append((int(raw), is_given))
+        if token == ".":
+            result.append(None)
+        elif token.isdigit():
+            result.append(int(token))
         else:
             return None
     return result if result else None
@@ -79,7 +71,7 @@ def _parse_board_from_text(text: str, box_rows: int, box_cols: int) -> Optional[
             data_lines.append(stripped)
 
     # Find the first contiguous window of `size` valid rows
-    window: list[list[tuple[Optional[int], bool]]] = []
+    window: list[list[Optional[int]]] = []
     for line in data_lines:
         parsed = _parse_data_line(line, box_cols=box_cols)
         if parsed is None:
@@ -95,20 +87,9 @@ def _parse_board_from_text(text: str, box_rows: int, box_cols: int) -> Optional[
         if len(window) != size:
             return None
 
-    cells: list[list[Optional[int]]] = []
-    givens: set[tuple[int, int]] = set()
-
-    for r, row_data in enumerate(window):
-        row: list[Optional[int]] = []
-        for c, (val, is_given) in enumerate(row_data):
-            row.append(val)
-            if is_given:
-                givens.add((r, c))
-        cells.append(row)
-
     return Board(
-        cells=cells,
-        givens=frozenset(givens),
+        cells=[row[:] for row in window],
+        givens=frozenset(),
         box_rows=box_rows,
         box_cols=box_cols,
     )
