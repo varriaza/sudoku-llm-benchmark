@@ -3,17 +3,16 @@ from sudoku_bench.board import Board
 
 
 def cell_width(board_size: int) -> int:
-    """Return the character width of a single cell (number + star/space)."""
+    """Return the character width of a single cell (number + trailing space)."""
     return 3 if board_size <= 9 else 4
 
 
-def _format_cell(value: int | None, is_given: bool, width: int) -> str:
+def _format_cell(value: int | None, width: int) -> str:
     """Format a single cell to exactly `width` characters."""
-    num_width = width - 1  # space for the star/space suffix
+    num_width = width - 1
     if value is None:
         return " " * (num_width - 1) + ". "
-    suffix = "*" if is_given else " "
-    return str(value).rjust(num_width) + suffix
+    return str(value).rjust(num_width) + " "
 
 
 def format_board(board: Board) -> str:
@@ -43,7 +42,7 @@ def format_board(board: Board) -> str:
             col_start = bx * box_cols
             col_end = col_start + box_cols
             section = "".join(
-                _format_cell(board.cells[r][c], board.is_given(r, c), cw)
+                _format_cell(board.cells[r][c], cw)
                 for c in range(col_start, col_end)
             )
             box_sections.append(section)

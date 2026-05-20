@@ -34,7 +34,7 @@ Rules:
 - Each row must contain each number from 1-{size} exactly once.
 - Each column must contain each number from 1-{size} exactly once.
 - Each {box_rows}x{box_cols} box must contain each number from 1-{size} exactly once.
-- Cells marked with * are pre-filled givens and must not be changed.
+- Pre-filled cells must not be changed.
 
 When you want to check your progress, submit your current grid in the same format shown \
 below. The computer will report back with any rule violations (duplicate numbers, modified given cells, \
@@ -51,7 +51,7 @@ Do not write code — reason through the puzzle logically.
 
 MALFORMED_RESPONSE = """\
 Your board couldn't be parsed. Please resubmit in this exact format (replace . with your \
-numbers, keep * on given cells):
+numbers):
 
 {example}
 """

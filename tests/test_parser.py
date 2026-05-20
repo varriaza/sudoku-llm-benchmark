@@ -15,40 +15,11 @@ def test_parse_simple_4x4():
     assert board.cells[3] == [4, 3, 2, 1]
 
 
-def test_parse_strips_star_markers():
-    text = """
- 1* 2  |  3* 4
- 3  4* |  1  2
--------+-------
- 2  1  |  4  3
- 4  3  |  2  1
-"""
-    board = parse_board(text, box_rows=2, box_cols=2)
-    assert board is not None
-    assert board.cells[0][0] == 1
-    assert board.cells[0][2] == 3
-
-
-def test_parse_preserves_givens_from_stars():
-    text = """
- 1* 2  |  3* 4
- 3  4* |  1  2
--------+-------
- 2  1  |  4  3
- 4  3  |  2  1
-"""
-    board = parse_board(text, box_rows=2, box_cols=2)
-    assert board is not None
-    assert (0, 0) in board.givens
-    assert (0, 2) in board.givens
-    assert (1, 1) in board.givens
-    assert (0, 1) not in board.givens
-
 
 def test_parse_empty_cells_as_none():
     text = """
- 1* .  |  .  4
- .  4* |  1  .
+ 1  .  |  .  4
+ .  4  |  1  .
 -------+-------
  2  .  |  .  3
  .  3  |  2  .
@@ -64,8 +35,8 @@ def test_parse_embedded_in_prose():
     text = """
 I've been working through the puzzle and here's my current board:
 
- 1* 2  |  3* 4
- 3  4* |  1  2
+ 1  2  |  3  4
+ 3  4  |  1  2
 -------+-------
  2  1  |  4  3
  4  3  |  2  1
@@ -138,31 +109,16 @@ def test_parse_16x16_two_digit_values():
     assert board.cells[0][0] == 16
 
 
-def test_parse_all_cells_starred():
-    """LLM marks all cells with * — should still parse all 16 values."""
-    text = """
-2* 3* | 1* 4*
-4* 1* | 3* 2*
------- + ------
-3* 2* | 4* 1*
-1* 4* | 2* 3*
-"""
-    board = parse_board(text, box_rows=2, box_cols=2)
-    assert board is not None
-    assert board.cells_filled == 16
-    assert board.cells[1] == [4, 1, 3, 2]
-    assert board.cells[2] == [3, 2, 4, 1]
-
 
 def test_parse_in_code_fence():
     """LLM wraps board in a markdown code fence."""
     text = """
 ```
-2* 3* | 1* 4*
-4  1  | 3* 2*
+2  3  | 1  4
+4  1  | 3  2
 ------ + ------
-3  2  | 4* 1
-1* 4* | 2* 3*
+3  2  | 4  1
+1  4  | 2  3
 ```
 
 This fills:
@@ -183,22 +139,22 @@ def test_parse_ignores_think_block_partial_board():
     text = """<think>
 Let me work through this step by step.
 
-2* 3* | 1* 4*
-4* .  | 3* 2*
+2  3  | 1  4
+4  .  | 3  2
 ------ + ------
-.  2* | 4* .
-1* 4* | 2* 3*
+.  2  | 4  .
+1  4  | 2  3
 
 I still need to fill in R2C2, R3C1, R3C4...
 </think>
 
 Here is my completed board:
 
-2* 3* | 1* 4*
-4* 1* | 3* 2*
+2  3  | 1  4
+4  1  | 3  2
 ------ + ------
-3* 2* | 4* 1*
-1* 4* | 2* 3*
+3  2  | 4  1
+1  4  | 2  3
 """
     board = parse_board(text, box_rows=2, box_cols=2)
     assert board is not None
@@ -210,11 +166,11 @@ Here is my completed board:
 def test_parse_board_only_in_think_block_returns_none():
     """A board that only appears inside <think> is not a submission."""
     text = """<think>
-2* 3* | 1* 4*
-4* 1* | 3* 2*
+2  3  | 1  4
+4  1  | 3  2
 ------ + ------
-3* 2* | 4* 1*
-1* 4* | 2* 3*
+3  2  | 4  1
+1  4  | 2  3
 </think>
 
 I have submitted my answer.
@@ -223,16 +179,3 @@ I have submitted my answer.
     assert board is None
 
 
-def test_parse_star_prefix_numbers():
-    """Handle *4* or *4 tokens where * appears before the digit."""
-    text = """
-*2* *3* | *1* *4*
-*4* *1* | *3* *2*
--------- + --------
-*3* *2* | *4* *1*
-*1* *4* | *2* *3*
-"""
-    board = parse_board(text, box_rows=2, box_cols=2)
-    assert board is not None
-    assert board.cells_filled == 16
-    assert board.cells[0] == [2, 3, 1, 4]
