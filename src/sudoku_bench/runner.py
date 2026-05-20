@@ -470,7 +470,7 @@ def _run_benchmark(config, config_path: Path) -> None:
                     context_window=context_window,
                     context_buffer=config.benchmark.context_buffer_tokens,
                     max_turns=config.benchmark.max_turns_per_puzzle,
-                    temperature=0.1,
+                    temperature=config.benchmark.temperature,
                     llm_output_file=llm_file if llm_output_path else None,
                 )
         finally:
