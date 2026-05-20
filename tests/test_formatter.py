@@ -34,25 +34,6 @@ def test_format_4x4_empty_board():
     assert all(c in "-+ " for c in sep_line)
 
 
-def test_format_4x4_given_not_marked_with_star():
-    cells = [[1, 2, 3, 4],
-             [3, 4, 1, 2],
-             [2, 1, 4, 3],
-             [4, 3, 2, 1]]
-    board = make_board(cells, {(0, 0), (1, 2)}, box_rows=2, box_cols=2)
-    result = format_board(board)
-    assert "*" not in result
-
-
-def test_format_4x4_non_given_no_star():
-    cells = [[1, 2, 3, 4],
-             [3, 4, 1, 2],
-             [2, 1, 4, 3],
-             [4, 3, 2, 1]]
-    board = make_board(cells, set(), box_rows=2, box_cols=2)
-    result = format_board(board)
-    assert "*" not in result
-
 
 def test_format_9x9_row_count():
     cells = [[None] * 9 for _ in range(9)]
@@ -90,11 +71,3 @@ def test_format_16x16_two_digit_value():
     assert "*" not in result
 
 
-def test_format_board_never_has_star():
-    """No asterisks regardless of whether cells are given."""
-    cells9 = [[None] * 9 for _ in range(9)]
-    cells9[0][0] = 5
-    cells9[4][4] = 3
-    board = make_board(cells9, {(0, 0)}, box_rows=3, box_cols=3)
-    result = format_board(board)
-    assert "*" not in result

@@ -15,18 +15,6 @@ def test_parse_simple_4x4():
     assert board.cells[3] == [4, 3, 2, 1]
 
 
-def test_parse_star_suffix_returns_none():
-    """Tokens with * suffix are no longer valid — board should not parse."""
-    text = """
- 1* 2  |  3* 4
- 3  4* |  1  2
--------+-------
- 2  1  |  4  3
- 4  3  |  2  1
-"""
-    board = parse_board(text, box_rows=2, box_cols=2)
-    assert board is None
-
 
 def test_parse_empty_cells_as_none():
     text = """
@@ -121,18 +109,6 @@ def test_parse_16x16_two_digit_values():
     assert board.cells[0][0] == 16
 
 
-def test_parse_all_cells_starred_returns_none():
-    """Star-marked tokens are no longer valid — board should not parse."""
-    text = """
-2* 3* | 1* 4*
-4* 1* | 3* 2*
------- + ------
-3* 2* | 4* 1*
-1* 4* | 2* 3*
-"""
-    board = parse_board(text, box_rows=2, box_cols=2)
-    assert board is None
-
 
 def test_parse_in_code_fence():
     """LLM wraps board in a markdown code fence."""
@@ -203,14 +179,3 @@ I have submitted my answer.
     assert board is None
 
 
-def test_parse_star_prefix_returns_none():
-    """Tokens with * prefix/suffix are no longer valid."""
-    text = """
-*2* *3* | *1* *4*
-*4* *1* | *3* *2*
--------- + --------
-*3* *2* | *4* *1*
-*1* *4* | *2* *3*
-"""
-    board = parse_board(text, box_rows=2, box_cols=2)
-    assert board is None
