@@ -443,6 +443,13 @@ def _run_benchmark(config, config_path: Path) -> None:
         monitor = GPUMonitor(poll_interval=config.benchmark.gpu_poll_interval)
         print("  Monitor: nvidia-smi")
 
+    temperature_is_default = config.benchmark.temperature is None
+    temperature = (
+        config.benchmark.temperature
+        if not temperature_is_default
+        else model_info.default_temperature
+    )
+
     llm_output_path: Optional[Path] = None
     if config.benchmark.save_llm_output:
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -470,7 +477,7 @@ def _run_benchmark(config, config_path: Path) -> None:
                     context_window=context_window,
                     context_buffer=config.benchmark.context_buffer_tokens,
                     max_turns=config.benchmark.max_turns_per_puzzle,
-                    temperature=0.1,
+                    temperature=config.benchmark.temperature,
                     llm_output_file=llm_file if llm_output_path else None,
                 )
         finally:
@@ -520,6 +527,8 @@ def _run_benchmark(config, config_path: Path) -> None:
             max_sys_ram_mb=gpu_stats.max_sys_ram_mb,
             total_ram_mb=total_ram,
             malformed_submissions=stats["malformed_submissions"],
+            temperature_is_default=temperature_is_default,
+            temperature=temperature,
         )
 
         append_csv_row(metrics, results_path)

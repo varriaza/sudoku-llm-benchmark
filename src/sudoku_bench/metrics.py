@@ -46,6 +46,8 @@ CSV_COLUMNS = [
     "max_sys_ram_mb",
     "total_ram_mb",
     "malformed_submissions",
+    "temperature_is_default",
+    "temperature",
 ]
 
 
@@ -90,6 +92,8 @@ class PuzzleMetrics:
     max_sys_ram_mb: Optional[int]
     total_ram_mb: Optional[int]
     malformed_submissions: int
+    temperature_is_default: bool
+    temperature: Optional[float]
 
 
 def append_csv_row(metrics: PuzzleMetrics, path: Path) -> None:

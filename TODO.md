@@ -4,7 +4,7 @@ Done
 - [x] Add peak_total_memory_mb to the benchmark and its results
 - [x] Add model_file_size_gb to the benchmark and its results
 - [x] Add the backend used for the test (vllm, llamacpp, etc)
-- [x] Make llama.cpp set temperature to 0.1 for consistency
+- [x] Use model default temperature (don't override it)
 
 To Do
 - [x] break total_tokens,context_tokens_used into "num_input_tokens", "num_thinking_tokens", "num_output_tokens" (note, these are separate from thinking tokens), "total_response_tokens" (num_thinking_tokens + num_output_tokens) "total_tokens_used" (eg num_input_tokens + num_thinking_tokens + num_output_tokens)
@@ -32,5 +32,5 @@ To Do
 Srapped todo
 - (scraped) Make vllm work 
 - Investigate "(APIServer pid=153890) WARNING 03-29 10:21:46 [interface.py:472] Using 'pin_memory=False' as WSL is detected. This may slow down the performance."
-- Make vllm set temperature to 0.1 for consistency
+- (done via default) Make vllm set temperature consistently
 - Double check the default settings for vLLM to make sure things like auto prune context or other silent things that would influence tests are not present
