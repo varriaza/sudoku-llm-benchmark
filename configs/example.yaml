@@ -23,7 +23,7 @@ serve:
 puzzles:
   - box_rows: 2
     box_cols: 2
-    diffs: [0.25, 0.5, 0.75]
+    diffs: [0.25, 0.5, 0.75]  # fraction of cells removed: 0.0 = all given, 1.0 = none given (harder)
     tests_per_diff: 3
   - box_rows: 2
     box_cols: 3
