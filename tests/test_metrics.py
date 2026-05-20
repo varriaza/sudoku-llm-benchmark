@@ -43,6 +43,8 @@ def make_metrics(**kwargs):
         max_sys_ram_mb=600,
         total_ram_mb=19800,
         malformed_submissions=0,
+        temperature_is_default=True,
+        temperature=0.8,
     )
     defaults.update(kwargs)
     return PuzzleMetrics(**defaults)
