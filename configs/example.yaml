@@ -23,7 +23,7 @@ serve:
 puzzles:
   - box_rows: 2
     box_cols: 2
-    diffs: [0.25, 0.5, 0.75]
+    diffs: [0.25, 0.5, 0.75]  # fraction of cells removed: 0.0 = all given, 1.0 = none given (harder)
     tests_per_diff: 3
   - box_rows: 2
     box_cols: 3
@@ -49,3 +49,4 @@ benchmark:
   context_buffer_tokens: 500      # reserve this many tokens before context is "full"
   max_turns_per_puzzle: 200       # hard cap on turns per puzzle (safety net)
   save_llm_output: false          # write full LLM input/output to results/llm_output_<timestamp>.txt
+  # temperature: 0.6              # omit to use the model's default temperature

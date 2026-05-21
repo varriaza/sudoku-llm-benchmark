@@ -54,6 +54,7 @@ class ModelInfo:
     bits_per_weight: Optional[float]  # e.g. 4.85
     context_window: Optional[int]
     backend_type: str = "unknown"  # "llamacpp" | "vllm" | "unknown"
+    default_temperature: Optional[float] = None  # from /props for llamacpp, else None
 
 
 def _get_json(url: str, timeout: int = 5) -> Optional[dict]:
@@ -93,6 +94,9 @@ def detect_model_info(api_base: str, name_override: Optional[str] = None) -> Mod
     props = _get_json(f"{root}/props")
     if props is not None:
         context_window = int(props["n_ctx"]) if "n_ctx" in props else None
+        default_temperature = (
+            props.get("default_generation_settings", {}).get("params", {}).get("temperature")
+        )
         # Get model name from /v1/models if no override provided
         if name_override:
             model_name = name_override
@@ -108,6 +112,7 @@ def detect_model_info(api_base: str, name_override: Optional[str] = None) -> Mod
             bits_per_weight=_quant_to_bpw(quant),
             context_window=context_window,
             backend_type="llamacpp",
+            default_temperature=default_temperature,
         )
 
     # --- Try vLLM ---

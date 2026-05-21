@@ -257,6 +257,21 @@ Does not count turns where a grid was found but contained violations — those a
 
 ---
 
+## Temperature
+
+### `temperature_is_default`
+`True` if no `temperature` was set in the config's `benchmark:` section (i.e., the model ran with its own built-in default).
+`False` if a specific value was passed via config.
+
+### `temperature`
+The temperature value in effect for this run.
+- If `temperature_is_default` is `False`: the value from the config.
+- If `temperature_is_default` is `True`: the server's reported default, sourced from llama.cpp's `/props` → `default_generation_settings.params.temperature`. Blank for backends that do not expose this (vLLM, unknown).
+
+**Source:** `sudoku_bench/model_info.py` → `ModelInfo.default_temperature` (for defaults); `sudoku_bench/config.py` → `BenchmarkConfig.temperature` (for overrides).
+
+---
+
 ## Monitor selection
 
 The monitor used depends on the detected backend (logged at run time):

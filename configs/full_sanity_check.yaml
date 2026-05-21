@@ -34,3 +34,4 @@ benchmark:
   puzzle_bank_file: "puzzles/puzzles.json"
   context_buffer_tokens: 500      # reserve this many tokens before context is "full"
   max_turns_per_puzzle: 200       # hard cap on turns per puzzle (safety net)
+  # temperature: 0.6              # omit to use the model's default temperature
