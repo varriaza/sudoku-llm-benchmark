@@ -7,32 +7,16 @@
 #   . 1 4 3   <- missing: row 3 col 1 = 2
 #   4 3 . 1   <- missing: row 4 col 3 = 2
 
-# Tried Qwen2.5-3B — solved in 3 turns (5.8s). Trying 7B for more reliability.
-# model:
-#   api_base: "http://localhost:8080/v1"
-#   name: "qwen2.5-3b-instruct-q4_k_m.gguf"
-#   context_window: 8192
-# serve:
-#   command: [
-#     "llama-server",
-#     "--hf-repo", "Qwen/Qwen2.5-3B-Instruct-GGUF",
-#     "--hf-file", "qwen2.5-3b-instruct-q4_k_m.gguf",
-#     "--port", "8080",
-#     "--ctx-size", "8192",
-#     "--seed", "42"
-#   ]
-#   startup_timeout: 120
-
 model:
   api_base: "http://localhost:8080/v1"
-  name: "qwen2.5-7b-instruct-q3_k_m.gguf"
+  name: "qwen2.5-3b-instruct-q4_k_m.gguf"
   context_window: 8192
 
 serve:
   command: [
     "llama-server",
-    "--hf-repo", "Qwen/Qwen2.5-7B-Instruct-GGUF",
-    "--hf-file", "qwen2.5-7b-instruct-q3_k_m.gguf",
+    "--hf-repo", "Qwen/Qwen2.5-3B-Instruct-GGUF",
+    "--hf-file", "qwen2.5-3b-instruct-q4_k_m.gguf",
     "--port", "8080",
     "--ctx-size", "8192",
     "--seed", "42"
