@@ -132,6 +132,7 @@ def run_puzzle(
     context_buffer: int,
     max_turns: int = 50,
     temperature: Optional[float] = None,
+    max_tokens: Optional[int] = None,
     llm_output_file: Optional[IO[str]] = None,
 ) -> dict:
     """
@@ -176,6 +177,7 @@ def run_puzzle(
             model=model_name,
             messages=messages,
             **({"temperature": temperature} if temperature is not None else {}),
+            **({"max_tokens": max_tokens} if max_tokens is not None else {}),
         )
 
         usage = response.usage
@@ -471,6 +473,7 @@ def _run_benchmark(config, config_path: Path) -> None:
                     context_buffer=config.benchmark.context_buffer_tokens,
                     max_turns=config.benchmark.max_turns_per_puzzle,
                     temperature=0.1,
+                    max_tokens=config.benchmark.max_tokens_per_response,
                     llm_output_file=llm_file if llm_output_path else None,
                 )
         finally:
