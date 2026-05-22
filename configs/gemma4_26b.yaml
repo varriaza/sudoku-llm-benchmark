@@ -1,0 +1,42 @@
+# Gemma 4-26B-A4B (MoE, 3.8B active params) on 16GB VRAM
+# Quantization: UD-IQ4_XS (13.6 GB) — best 4-bit quality that fits on 16 GB
+# MoE architecture reduces KV cache footprint vs a dense 26B model
+
+model:
+  api_base: "http://localhost:8080/v1"
+  name: "gemma-4-26B-A4B-it-UD-IQ4_XS.gguf"
+  context_window: 16384
+
+serve:
+  command: [
+    "llama-server",
+    "--hf-repo", "unsloth/gemma-4-26B-A4B-it-GGUF",
+    "--hf-file", "gemma-4-26B-A4B-it-UD-IQ4_XS.gguf",
+    "--port", "8080",
+    "--ctx-size", "16384",
+    "--n-gpu-layers", "99",
+    "--cache-type-k", "q8_0",
+    "--cache-type-v", "q8_0",
+    "--metrics",
+    "--seed", "42"
+  ]
+  startup_timeout: 180  # larger model takes longer to load
+
+puzzles:
+  - box_rows: 2
+    box_cols: 2
+    diffs: [0.25, 0.5, 0.75]
+    tests_per_diff: 3
+  - box_rows: 3
+    box_cols: 3
+    diffs: [0.25, 0.5, 0.75]
+    tests_per_diff: 3
+
+benchmark:
+  gpu_poll_interval: 1.0
+  results_file: "results/gemma4_26b.csv"
+  puzzle_bank_file: "puzzles/puzzles.json"
+  context_buffer_tokens: 500
+  max_turns_per_puzzle: 200
+  save_llm_output: false
+  # temperature: 0.6  # omit to use the model's default temperature

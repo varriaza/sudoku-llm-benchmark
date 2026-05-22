@@ -1,0 +1,42 @@
+# Qwen3.6-27B on 16GB VRAM
+# Quantization: Q3_K_M (13.6 GB) — best quality that fits on 16 GB
+# q8_0 KV cache halves KV memory; ctx 16384 keeps total usage ~15 GB
+
+model:
+  api_base: "http://localhost:8080/v1"
+  name: "Qwen3.6-27B-Q3_K_M.gguf"
+  context_window: 16384
+
+serve:
+  command: [
+    "llama-server",
+    "--hf-repo", "unsloth/Qwen3.6-27B-GGUF",
+    "--hf-file", "Qwen3.6-27B-Q3_K_M.gguf",
+    "--port", "8080",
+    "--ctx-size", "16384",
+    "--n-gpu-layers", "99",
+    "--cache-type-k", "q8_0",
+    "--cache-type-v", "q8_0",
+    "--metrics",
+    "--seed", "42"
+  ]
+  startup_timeout: 180  # larger model takes longer to load
+
+puzzles:
+  - box_rows: 2
+    box_cols: 2
+    diffs: [0.25, 0.5, 0.75]
+    tests_per_diff: 3
+  - box_rows: 3
+    box_cols: 3
+    diffs: [0.25, 0.5, 0.75]
+    tests_per_diff: 3
+
+benchmark:
+  gpu_poll_interval: 1.0
+  results_file: "results/qwen36_27b.csv"
+  puzzle_bank_file: "puzzles/puzzles.json"
+  context_buffer_tokens: 500
+  max_turns_per_puzzle: 200
+  save_llm_output: false
+  # temperature: 0.6  # omit to use the model's default temperature

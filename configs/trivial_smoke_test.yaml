@@ -1,0 +1,21 @@
+# Used by the pre-commit hook for a fast smoke test.
+# No serve: block — connects to a server already running on localhost:8080.
+# diff=0.125 on a 4x4 board = exactly 2 cells removed ("trivial 2-cell puzzle").
+
+model:
+  api_base: "http://localhost:8080/v1"
+  name: "smoke-test"
+  context_window: 4096
+
+puzzles:
+  - box_rows: 2
+    box_cols: 2
+    diffs: [0.125]
+    tests_per_diff: 1
+
+benchmark:
+  results_file: "results/trivial_smoke_test.csv"
+  puzzle_bank_file: "puzzles/puzzles.json"
+  context_buffer_tokens: 200
+  max_turns_per_puzzle: 10
+  save_llm_output: false
