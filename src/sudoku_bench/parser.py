@@ -70,8 +70,11 @@ def _parse_board_from_text(text: str, box_rows: int, box_cols: int) -> Optional[
             # collect anyway and fail at validation
             data_lines.append(stripped)
 
-    # Find the first contiguous window of `size` valid rows
+    # Find the last contiguous window of `size` valid rows.
+    # Using the last window (not the first) means that when an LLM echoes the
+    # original puzzle before presenting its solution, we parse the solution.
     window: list[list[Optional[int]]] = []
+    best_window: list[list[Optional[int]]] = []
     for line in data_lines:
         parsed = _parse_data_line(line, box_cols=box_cols)
         if parsed is None:
@@ -82,13 +85,14 @@ def _parse_board_from_text(text: str, box_rows: int, box_cols: int) -> Optional[
             continue
         window.append(parsed)
         if len(window) == size:
-            break
-    else:
-        if len(window) != size:
-            return None
+            best_window = window[:]
+            window = []
+
+    if not best_window:
+        return None
 
     return Board(
-        cells=[row[:] for row in window],
+        cells=[row[:] for row in best_window],
         givens=frozenset(),
         box_rows=box_rows,
         box_cols=box_cols,
