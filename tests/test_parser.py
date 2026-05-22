@@ -163,6 +163,33 @@ Here is my completed board:
     assert board.cells[2] == [3, 2, 4, 1]
 
 
+def test_parse_returns_last_board_when_llm_echoes_puzzle_first():
+    """When the LLM echoes the original puzzle (with dots) before its solution,
+    the parser must return the solution, not the echo."""
+    text = """
+Here is your puzzle again:
+
+ 1  2  |  3  4
+ 3  4  |  1  2
+------ + ------
+ .  1  |  4  3
+ 4  3  |  .  1
+
+Now let me fill in the missing cells:
+
+ 1  2  |  3  4
+ 3  4  |  1  2
+------ + ------
+ 2  1  |  4  3
+ 4  3  |  2  1
+"""
+    board = parse_board(text, box_rows=2, box_cols=2)
+    assert board is not None
+    assert board.cells_filled == 16
+    assert board.cells[2] == [2, 1, 4, 3]
+    assert board.cells[3] == [4, 3, 2, 1]
+
+
 def test_parse_board_only_in_think_block_returns_none():
     """A board that only appears inside <think> is not a submission."""
     text = """<think>

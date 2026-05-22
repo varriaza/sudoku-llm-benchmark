@@ -1,0 +1,45 @@
+# Trivial 2-missing-cell puzzle for pre-commit smoke testing.
+# Uses the smallest practical model to verify the pipeline works end-to-end.
+#
+# Puzzle (4x4, 2 cells missing):
+#   1 2 3 4
+#   3 4 1 2
+#   . 1 4 3   <- missing: row 3 col 1 = 2
+#   4 3 . 1   <- missing: row 4 col 3 = 2
+
+model:
+    api_base: "http://localhost:8080/v1"
+    name: "qwen2.5-3b-instruct-q4_k_m.gguf"
+    context_window: 8192
+
+serve:
+    command:
+        [
+            "llama-server",
+            "--hf-repo",
+            "Qwen/Qwen2.5-3B-Instruct-GGUF",
+            "--hf-file",
+            "qwen2.5-3b-instruct-q4_k_m.gguf",
+            "--port",
+            "8080",
+            "--ctx-size",
+            "8192",
+            "--seed",
+            "42",
+        ]
+    startup_timeout: 120
+
+puzzles:
+    - box_rows: 2
+      box_cols: 2
+      diffs: [0.125]
+      tests_per_diff: 1
+
+benchmark:
+    results_file: "results/trivial_smoke_test.csv"
+    puzzle_bank_file: "puzzles/trivial_puzzles.json"
+    context_buffer_tokens: 200
+    max_turns_per_puzzle: 10
+    temperature: 0.1
+    max_tokens_per_response: 600
+    save_llm_output: true

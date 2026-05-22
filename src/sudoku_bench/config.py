@@ -30,6 +30,7 @@ class BenchmarkConfig:
     max_turns_per_puzzle: int = 200
     save_llm_output: bool = False
     temperature: Optional[float] = None
+    max_tokens_per_response: Optional[int] = None
 
 
 @dataclass

@@ -20,10 +20,12 @@ sudoku-llm-benchmark/
 ├── README.md                      ← full setup/usage docs
 ├── results/COLUMNS.md             ← reference for all 41 CSV output columns
 ├── configs/
+│   ├── trivial_smoke_test.yaml    ← pre-commit smoke test (4×4, 2 missing cells, Qwen2.5-3B)
 │   ├── simple_sanity_check.yaml   ← fastest benchmark (1 puzzle, 2×2 board)
 │   ├── full_sanity_check.yaml     ← medium benchmark (2×2, 3 diffs × 3 puzzles)
 │   └── example.yaml               ← full benchmark template (5 board sizes)
 ├── puzzles/puzzles.json           ← pre-generated puzzle bank (do not edit)
+├── puzzles/trivial_puzzles.json   ← hardcoded 2-cell puzzle for smoke testing (do not edit)
 ├── results/                       ← CSV output lands here (gitignored except COLUMNS.md)
 ├── src/sudoku_bench/
 │   ├── runner.py                  ← main benchmark loop (entry point: sudoku-bench)
